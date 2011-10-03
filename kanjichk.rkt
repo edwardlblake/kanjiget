@@ -99,15 +99,16 @@
   (set! ly #f))
 
 (define (do-kanjisearch)
-  (let*([v (dc200x200->vector100x100 bt)]
-        [nv (make-flvector 10000 0.0)]
+  (let*([v ((dc200x200->vector100x100/session) bt)]
+        [vlen (flvector-length v)]
+        [nv (make-flvector vlen 0.0)]
         [lst (for/list ([p kanjivectors])
                (let* ([ltr (string (car p))]
                       [lstknj (cdr p)]
                       [scr (for/fold ([sum 0.0])
                              ([e0 (in-flvector v)]
                               [e1 (in-flvector lstknj)]
-                              [i  (in-range 0 10000)])
+                              [i  (in-range 0 vlen)])
                              (let([fct (unsafe-fl* e0 e1)])
                                (flvector-set! nv i fct)
                                (unsafe-fl+ sum fct)))])
@@ -320,6 +321,8 @@
 
 (send frame show #t)
 
+(define CONST_FILE_KANJIMTX "kanjimtx.dat")
+
 (define (create-indexes-if-needed)
   (if (file-exists? CONST_FILE_KANJIIDX0)
       (call-with-input-file CONST_FILE_KANJIIDX0
@@ -329,156 +332,167 @@
         )
       (call-with-output-file CONST_FILE_KANJIIDX0
         (lambda (fo)
-          (call-with-input-file "edict/kanjidic2.xml"
-            (lambda (fi)
-              (define (pick-elem-cont z)
-                ((compose xml->xexpr
-                          first
-                          element-content) z))
-              (define (pick-elem-attr z at [df ""])
-                (let ([ret df])
-                  (for ([zi (element-attributes z)])
-                    (when (equal? at (attribute-name zi))
-                      (set! ret (attribute-value zi)))
+          (call-with-output-file CONST_FILE_KANJIMTX
+            (lambda (fom)
+              (define knji->vec (kanjiletter->vector100x100/session))
+              (call-with-input-file "edict/kanjidic2.xml"
+                (lambda (fi)
+                  (define (pick-elem-cont z)
+                    ((compose xml->xexpr
+                              first
+                              element-content) z))
+                  (define (pick-elem-attr z at [df ""])
+                    (let ([ret df])
+                      (for ([zi (element-attributes z)])
+                        (when (equal? at (attribute-name zi))
+                          (set! ret (attribute-value zi)))
+                        )
+                      ret)
                     )
-                  ret)
-                )
-              (for ([a (element-content (document-element (read-xml fi)))])
-                (when (element? a)
-                  (case (element-name a)
-                    [[character]
-                     (let ([knj-letter ""]
-                           [knj-grade #f]
-                           [knj-strokenum #f]
-                           [knj-variant #f]
-                           [knj-freq #f]
-                           [knj-jlpt #f]
-                           [knj-readings #f]
-                           [knj-meanings #f]
-                           [knj-nanori #f]
-                           [knj-dicref #f]
-                           )
-                       (for ([b (element-content a)])
-                         (when (element? b)
-                           (case (element-name b)
-                             [[literal]
-                              (set! knj-letter (pick-elem-cont b))
-                              ;(send mytxt insert (format "~a" (first (element-content b))))
-                              ]
-                             [[codepoint query_code] (void)]
-                             [[radical]
-                              (void)] ; (radical () "\n" (rad_value ((rad_type "classical")) "7") "\n" (rad_value ((rad_type "nelson_c")) "1") "\n")
-                             [[misc]
-                              (for ([c (element-content b)])
-                                (when (element? c)
-                                  (case (element-name c)
-                                    [[grade]
-                                     (set! knj-grade (string->number (pick-elem-cont c)))
-                                     ]
-                                    [[stroke_count]
-                                     (set! knj-strokenum ((compose string->number first)
-                                                          (regexp-match #rx"^[0-9]+" "1 2 3")))
-                                     ]
-                                    [[variant]
-                                     (set! knj-variant (pick-elem-cont c))
-                                     ]
-                                    [[freq]
-                                     (set! knj-freq (string->number (pick-elem-cont c)))
-                                     ]
-                                    [[jlpt]
-                                     (set! knj-jlpt (string->number (pick-elem-cont c)))
-                                     ]
-                                    [else (void)]
-                                    )
-                                  )
-                                )]
-                             [[dic_number]
-                              (let ([tmplist-dicref (make-hash)])
-                                (for ([c (element-content b)])
-                                  (when (element? c)
-                                    (case (element-name c)
-                                      [[dic_ref]
-                                       (let ([type (pick-elem-attr c 'dr_type)]
-                                             [nval (string->number (pick-elem-cont c))])
-                                         (when (equal? "moro" type)
-                                           (set! type (format "~a p. ~a vol. ~a"
-                                                              type
-                                                              (pick-elem-attr c 'm_page)
-                                                              (pick-elem-attr c 'm_vol))))
-                                         (hash-set! tmplist-dicref type
-                                                    (cons nval (hash-ref tmplist-dicref type '()))))
-                                       ]
-                                      [else (void)])
-                                    )
-                                  )
-                                (set! knj-dicref tmplist-dicref)
-                                )]
-                             [[reading_meaning]
-                              (let ([tmplist-nanori   (make-hash)]
-                                    [tmplist-readings (make-hash)]
-                                    [tmplist-meanings (make-hash)])
-                                
-                                (for ([c (element-content b)])
-                                  (when (element? c)
-                                    (case (element-name c)
-                                      [[rmgroup]
-                                       (for ([d (element-content c)])
-                                         (when (element? d)
-                                           (case (element-name d)
-                                             [[reading]
-                                              (let ([type (pick-elem-attr d 'r_type)]
-                                                    [nval (pick-elem-cont d)])
-                                                (hash-set! tmplist-readings type
-                                                           (cons nval (hash-ref tmplist-readings type '()))))
-                                              ]
-                                             [[meaning]
-                                              (let ([lang (pick-elem-attr d 'm_lang "en")]
-                                                    [nval (pick-elem-cont d)])
-                                                (hash-set! tmplist-meanings lang
-                                                           (cons nval (hash-ref tmplist-meanings lang '()))))
-                                              ]
-                                             [else (void)])
-                                           )
-                                         )
-                                       ]
-                                      [[nanori]
-                                       (let ([unkn (pick-elem-attr c 'unkn)] ; in case later
-                                             [nval (pick-elem-cont c)])
-                                         (hash-set! tmplist-nanori unkn
-                                                    (cons nval (hash-ref tmplist-nanori unkn '()))))
-                                       ]
-                                      [else (void)]
+                  (for ([a (element-content (document-element (read-xml fi)))])
+                    (when (element? a)
+                      (case (element-name a)
+                        [[character]
+                         (let ([knj-letter ""]
+                               [knj-grade #f]
+                               [knj-strokenum #f]
+                               [knj-variant #f]
+                               [knj-freq #f]
+                               [knj-jlpt #f]
+                               [knj-readings #f]
+                               [knj-meanings #f]
+                               [knj-nanori #f]
+                               [knj-dicref #f]
+                               )
+                           (for ([b (element-content a)])
+                             (when (element? b)
+                               (case (element-name b)
+                                 [[literal]
+                                  (set! knj-letter (pick-elem-cont b))
+                                  ;(send mytxt insert (format "~a" (first (element-content b))))
+                                  ]
+                                 [[codepoint query_code] (void)]
+                                 [[radical]
+                                  (void)] ; (radical () "\n" (rad_value ((rad_type "classical")) "7") "\n" (rad_value ((rad_type "nelson_c")) "1") "\n")
+                                 [[misc]
+                                  (for ([c (element-content b)])
+                                    (when (element? c)
+                                      (case (element-name c)
+                                        [[grade]
+                                         (set! knj-grade (string->number (pick-elem-cont c)))
+                                         ]
+                                        [[stroke_count]
+                                         (set! knj-strokenum ((compose string->number first)
+                                                              (regexp-match #rx"^[0-9]+" "1 2 3")))
+                                         ]
+                                        [[variant]
+                                         (set! knj-variant (pick-elem-cont c))
+                                         ]
+                                        [[freq]
+                                         (set! knj-freq (string->number (pick-elem-cont c)))
+                                         ]
+                                        [[jlpt]
+                                         (set! knj-jlpt (string->number (pick-elem-cont c)))
+                                         ]
+                                        [else (void)]
+                                        )
                                       )
+                                    )]
+                                 [[dic_number]
+                                  (let ([tmplist-dicref (make-hash)])
+                                    (for ([c (element-content b)])
+                                      (when (element? c)
+                                        (case (element-name c)
+                                          [[dic_ref]
+                                           (let ([type (pick-elem-attr c 'dr_type)]
+                                                 [nval (string->number (pick-elem-cont c))])
+                                             (when (equal? "moro" type)
+                                               (set! type (format "~a p. ~a vol. ~a"
+                                                                  type
+                                                                  (pick-elem-attr c 'm_page)
+                                                                  (pick-elem-attr c 'm_vol))))
+                                             (hash-set! tmplist-dicref type
+                                                        (cons nval (hash-ref tmplist-dicref type '()))))
+                                           ]
+                                          [else (void)])
+                                        )
+                                      )
+                                    (set! knj-dicref tmplist-dicref)
+                                    )]
+                                 [[reading_meaning]
+                                  (let ([tmplist-nanori   (make-hash)]
+                                        [tmplist-readings (make-hash)]
+                                        [tmplist-meanings (make-hash)])
+                                    
+                                    (for ([c (element-content b)])
+                                      (when (element? c)
+                                        (case (element-name c)
+                                          [[rmgroup]
+                                           (for ([d (element-content c)])
+                                             (when (element? d)
+                                               (case (element-name d)
+                                                 [[reading]
+                                                  (let ([type (pick-elem-attr d 'r_type)]
+                                                        [nval (pick-elem-cont d)])
+                                                    (hash-set! tmplist-readings type
+                                                               (cons nval (hash-ref tmplist-readings type '()))))
+                                                  ]
+                                                 [[meaning]
+                                                  (let ([lang (pick-elem-attr d 'm_lang "en")]
+                                                        [nval (pick-elem-cont d)])
+                                                    (hash-set! tmplist-meanings lang
+                                                               (cons nval (hash-ref tmplist-meanings lang '()))))
+                                                  ]
+                                                 [else (void)])
+                                               )
+                                             )
+                                           ]
+                                          [[nanori]
+                                           (let ([unkn (pick-elem-attr c 'unkn)] ; in case later
+                                                 [nval (pick-elem-cont c)])
+                                             (hash-set! tmplist-nanori unkn
+                                                        (cons nval (hash-ref tmplist-nanori unkn '()))))
+                                           ]
+                                          [else (void)]
+                                          )
+                                        )
+                                      )
+                                    (set! knj-readings tmplist-readings)
+                                    (set! knj-meanings tmplist-meanings)                    
+                                    (set! knj-nanori   tmplist-nanori)
                                     )
-                                  )
-                                (set! knj-readings tmplist-readings)
-                                (set! knj-meanings tmplist-meanings)                    
-                                (set! knj-nanori   tmplist-nanori)
-                                )
-                              ]
-                             [else (void)])
+                                  ]
+                                 [else (void)])
+                               )
+                             )
+                           (display knj-letter)
+                           (write (list knj-letter knj-grade knj-strokenum knj-variant knj-freq knj-jlpt knj-readings knj-meanings knj-nanori knj-dicref) fo)
+                           ;(write (list knj-letter (for/vector ([e (in-flvector knj-vec)]) e)) fom)
+                           (write (list knj-letter (for/vector ([e (in-flvector (knji->vec knj-letter))]) e)) fom)
+                           ; write vector
                            )
-                         )
-                         (write (list knj-letter knj-grade knj-strokenum knj-variant knj-freq knj-jlpt knj-readings knj-meanings knj-nanori knj-dicref) fo)
-                         ; write vector
-                       )
-                     ]
-                    [else (void)]
-                    ))
-                )
+                         ]
+                        [else (void)]
+                        ))
+                    )
+                  )
+                #:mode 'text)
               )
-            #:mode 'text)
+            )
           )
         )
       )
   )
 
+(define RECMATRIX_WIDTH 32);50);100)
+(define RECMATRIX_HEIGHT 32);50);100)
+
 (define (debug-display-vk0-bitmap vk0 [vky #f] [scr #f])
-  (let* ([rbt  (make-bitmap 100 100 #t)]
-         [ybt  (make-bitmap 100 100 #t)]
-         ;[drbt (new bitmap-dc% [bitmap rbt])]
-         [px0  (make-bytes (* 100 100 4))])
-    (for ([i (in-range 0 10000)])
+  (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
+         [ybt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
+         [px0  (make-bytes (* RECMATRIX_WIDTH RECMATRIX_HEIGHT 4))]
+         [vlen (flvector-length vk0)])
+    (for ([i (in-range 0 vlen)])
       (let* ([pxval (inexact->exact (round (* 255 (flvector-ref vk0 i))))]
              [ycl (* i 4)])
         (unsafe-bytes-set! px0 (+ 0 ycl) 255)
@@ -486,9 +500,9 @@
         (unsafe-bytes-set! px0 (+ 2 ycl) pxval)
         (unsafe-bytes-set! px0 (+ 3 ycl) pxval)
         ))
-    (send rbt set-argb-pixels 0 0 100 100 px0 #f #t)
+    (send rbt set-argb-pixels 0 0 RECMATRIX_WIDTH RECMATRIX_HEIGHT px0 #f #t)
     (unless (equal? #f vky)
-      (for ([i (in-range 0 10000)])
+      (for ([i (in-range 0 vlen)])
         (let* ([pxval (inexact->exact (round (* 255 (flvector-ref vky i))))]
                [ycl (* i 4)])
           (unsafe-bytes-set! px0 (+ 0 ycl) 255)
@@ -496,7 +510,7 @@
           (unsafe-bytes-set! px0 (+ 2 ycl) pxval)
           (unsafe-bytes-set! px0 (+ 3 ycl) pxval)
           ))
-      (send ybt set-argb-pixels 0 0 100 100 px0 #f #t)
+      (send ybt set-argb-pixels 0 0 RECMATRIX_WIDTH RECMATRIX_HEIGHT px0 #f #t)
       )
     
     (define frx (new frame%
@@ -536,96 +550,103 @@
     )
   )
 
-(define (dc200x200->vector100x100 tbt)
-  (let* ([rbt (make-bitmap 100 100 #t)]
+(define (dc200x200->vector100x100/session)
+  (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
          [drbt (new bitmap-dc% [bitmap rbt])]
          [mcpx0 (make-bytes (* 200 1 4))]
-         [rscl-left   #f]
-         [rscl-right  #f]
-         [rscl-top    #f]
-         [rscl-bottom #f])
-    
-    (define (sumpxlarr)
-      (for/fold ([sum 0])
-        ([r (in-range 0 200)])
-        (let ([ycl (unsafe-fx* r 4)])
-          (+ sum
-             (- 765
-              (bytes-ref mcpx0 (unsafe-fx+ 1 ycl))
-              (bytes-ref mcpx0 (unsafe-fx+ 2 ycl))
-              (bytes-ref mcpx0 (unsafe-fx+ 3 ycl)))
-             )
+         )
+    (lambda (tbt)
+      (let ([rscl-left   #f]
+            [rscl-right  #f]
+            [rscl-top    #f]
+            [rscl-bottom #f])
+        
+        (define (sumpxlarr)
+          (for/fold ([sum 0])
+            ([r (in-range 0 200)])
+            (let ([ycl (unsafe-fx* r 4)])
+              (+ sum
+                 (- 765
+                    (bytes-ref mcpx0 (unsafe-fx+ 1 ycl))
+                    (bytes-ref mcpx0 (unsafe-fx+ 2 ycl))
+                    (bytes-ref mcpx0 (unsafe-fx+ 3 ycl)))
+                 )
+              )
+            )
+          )
+        
+        (for ([m-> (in-range 0   100  1)]
+              [m<- (in-range 200 100 -1)])
+          (when (equal? #f rscl-left)
+            (send tbt get-argb-pixels m-> 0 1 200 mcpx0 #f #t)
+            (when (> (sumpxlarr) 0) (set! rscl-left m->)))
+          (when (equal? #f rscl-right)
+            (send tbt get-argb-pixels m<- 0 1 200 mcpx0 #f #t)
+            (when (> (sumpxlarr) 0) (set! rscl-right m<-)))
+          (when (equal? #f rscl-top)
+            (send tbt get-argb-pixels 0 m-> 200 1 mcpx0 #f #t)
+            (when (> (sumpxlarr) 0) (set! rscl-top m->)))
+          (when (equal? #f rscl-bottom)
+            (send tbt get-argb-pixels 0 m<- 200 1 mcpx0 #f #t)
+            (when (> (sumpxlarr) 0) (set! rscl-bottom m<-)))
+          )
+        
+        (when (equal? #f rscl-left) (set! rscl-left 0))
+        (when (equal? #f rscl-right) (set! rscl-right 200))
+        (when (equal? #f rscl-top) (set! rscl-top 0))
+        (when (equal? #f rscl-bottom) (set! rscl-bottom 200))
+        
+        (send drbt set-scale
+              (/ RECMATRIX_WIDTH (- rscl-right rscl-left))
+              (/ RECMATRIX_HEIGHT (- rscl-bottom rscl-top)))
+        (send drbt draw-bitmap tbt (- rscl-left) (- rscl-top))
+        (let ([px0 (make-bytes (* RECMATRIX_WIDTH RECMATRIX_HEIGHT 4))]
+              [vk0 (make-flvector (* RECMATRIX_WIDTH RECMATRIX_HEIGHT))])
+          (send drbt get-argb-pixels 0 0 RECMATRIX_WIDTH RECMATRIX_HEIGHT px0 #f #t)
+          (for ([i (in-range 0 (flvector-length vk0))])
+            (let* ([ycl (unsafe-fx* i 4)]
+                   [pxsum (+ (bytes-ref px0 (unsafe-fx+ 1 ycl))
+                             (bytes-ref px0 (unsafe-fx+ 2 ycl))
+                             (bytes-ref px0 (unsafe-fx+ 3 ycl)))]
+                   [pxinv (max 0 (- 255 pxsum))]
+                   [pxnrm (exact->inexact (/ pxinv 255))])
+              (unsafe-flvector-set! vk0 i pxnrm)
+              ))
+          (let ([vk1 (flvector-copy vk0)])
+            (for ([y (in-range 0 RECMATRIX_HEIGHT)])
+              (for ([x (in-range 0 RECMATRIX_WIDTH)])
+                (let ([v (unsafe-flvector-ref vk0 (unsafe-fx+ x (unsafe-fx* y RECMATRIX_WIDTH)))])
+                  (when (unsafe-fl> v 0.5)
+                    (for ([iy (in-range (unsafe-fx- y 15) (unsafe-fx+ y 15) 2)]
+                          #:unless (unsafe-fx< iy 0)
+                          #:unless (unsafe-fx>= iy RECMATRIX_HEIGHT))
+                      (for ([ix (in-range (unsafe-fx- x 15) (unsafe-fx+ x 15) 2)]
+                            #:unless (unsafe-fx< ix 0)
+                            #:unless (unsafe-fx>= ix RECMATRIX_WIDTH)
+                            )
+                        (let* ([ivi (unsafe-fx+ ix (unsafe-fx* iy RECMATRIX_WIDTH))]
+                               [dx (unsafe-fx- x ix)]
+                               [dy (unsafe-fx- y iy)]
+                               [oiv (unsafe-flvector-ref vk1 ivi)]
+                               [niv (unsafe-fl* v 
+                                                (unsafe-fl- (expt 1.80 
+                                                                  (unsafe-fl- 0.0 
+                                                                              (unsafe-flsqrt (unsafe-fx->fl (unsafe-fx+ (unsafe-fx* dx dx)
+                                                                                                                        (unsafe-fx* dy dy))))))
+                                                            0.5))])
+                          (when (unsafe-fl< oiv (unsafe-flabs niv))
+                            (unsafe-flvector-set! vk1 ivi niv))
+                          )))))))
+            vk1
+            )
           )
         )
       )
-    
-    (for ([m-> (in-range 0   100  1)]
-          [m<- (in-range 200 100 -1)])
-      (when (equal? #f rscl-left)
-        (send tbt get-argb-pixels m-> 0 1 200 mcpx0 #f #t)
-        (when (> (sumpxlarr) 0) (set! rscl-left m->)))
-      (when (equal? #f rscl-right)
-        (send tbt get-argb-pixels m<- 0 1 200 mcpx0 #f #t)
-        (when (> (sumpxlarr) 0) (set! rscl-right m<-)))
-      (when (equal? #f rscl-top)
-        (send tbt get-argb-pixels 0 m-> 200 1 mcpx0 #f #t)
-        (when (> (sumpxlarr) 0) (set! rscl-top m->)))
-      (when (equal? #f rscl-bottom)
-        (send tbt get-argb-pixels 0 m<- 200 1 mcpx0 #f #t)
-        (when (> (sumpxlarr) 0) (set! rscl-bottom m<-)))
-      )
-    
-    (when (equal? #f rscl-left) (set! rscl-left 0))
-    (when (equal? #f rscl-right) (set! rscl-right 200))
-    (when (equal? #f rscl-top) (set! rscl-top 0))
-    (when (equal? #f rscl-bottom) (set! rscl-bottom 200))
-    
-    (send drbt set-scale (/ 100 (- rscl-right rscl-left)) (/ 100 (- rscl-bottom rscl-top)))
-    (send drbt draw-bitmap tbt (- rscl-left) (- rscl-top))
-    (let ([px0 (make-bytes (* 100 100 4))]
-          [vk0 (make-flvector (* 100 100))]
-          [vk1 (make-flvector (* 100 100))])
-      (send drbt get-argb-pixels 0 0 100 100 px0 #f #t)
-      (for ([i (in-range 0 10000)])
-        (let* ([ycl (unsafe-fx* i 4)]
-               [pxsum (+ (bytes-ref px0 (unsafe-fx+ 1 ycl))
-                         (bytes-ref px0 (unsafe-fx+ 2 ycl))
-                         (bytes-ref px0 (unsafe-fx+ 3 ycl)))]
-               [pxinv (max 0 (- 255 pxsum))]
-               [pxnrm (exact->inexact (/ pxinv 255))])
-          (unsafe-flvector-set! vk0 i pxnrm)
-          ))
-      (set! vk1 (flvector-copy vk0))
-      (for ([y (in-range 0 100)])
-        (for ([x (in-range 0 100)])
-          (let ([v (unsafe-flvector-ref vk0 (unsafe-fx+ x (unsafe-fx* y 100)))])
-            (when (unsafe-fl> v 0.5)
-              (for ([iy (in-range (unsafe-fx- y 15) (unsafe-fx+ y 15) 2)]
-                    #:unless (unsafe-fx< iy 0)
-                    #:unless (unsafe-fx>= iy 100))
-                (for ([ix (in-range (unsafe-fx- x 15) (unsafe-fx+ x 15) 2)]
-                      #:unless (unsafe-fx< ix 0)
-                      #:unless (unsafe-fx>= ix 100)
-                      )
-                  (let* ([ivi (unsafe-fx+ ix (unsafe-fx* iy 100))]
-                         [dx (unsafe-fx- x ix)]
-                         [dy (unsafe-fx- y iy)]
-                         [oiv (unsafe-flvector-ref vk1 ivi)]
-                         [niv (unsafe-fl* v 
-                                          (unsafe-fl- (expt 1.80 
-                                                              (unsafe-fl- 0.0 
-                                                                          (unsafe-flsqrt (unsafe-fx->fl (unsafe-fx+ (unsafe-fx* dx dx)
-                                                                                                                    (unsafe-fx* dy dy))))))
-                                                      0.5))])
-                    (when (unsafe-fl< oiv (unsafe-flabs niv))
-                      (unsafe-flvector-set! vk1 ivi niv))
-                    )))))))
-      vk1
-      )
     )
   )
-
+    
 (define (kanjiletter->vector100x100/session)
+  (define ->vec (dc200x200->vector100x100/session))
   (define kbt (make-bitmap 200 200 #t))
   (define dkbt (new bitmap-dc% [bitmap kbt]))
   (send dkbt set-scale 1 1)
@@ -637,7 +658,7 @@
             [w (- (/ 200 2) (/ th 2)) ])
         (send dkbt clear)
         (send dkbt draw-text ltr v w)
-        (dc200x200->vector100x100 kbt)))))
+        (->vec kbt)))))
 
 (let ()
   (define knji (kanjiletter->vector100x100/session))
