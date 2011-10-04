@@ -11,14 +11,34 @@
 (define STR_WIN_KANJIRESULTS "Kanji Results")
 
 (define CONST_FILE_KANJIIDX0 "knjidxl0.dat")
+(define CONST_FILE_KANJIMTX  "kanjimtx.dat")
+
+(define RECMATRIX_WIDTH 32)
+(define RECMATRIX_HEIGHT 32)
 
 (define kanjivectors '())
+(define kanjiinfo    #f)
 
 
 (define frame (new frame%
                    [label STR_WIN_KANJIFINDER]
                    [width 780]
                    [height 300]))
+
+  (define mnu
+    (new menu-bar%
+         [parent frame]))
+  (define mnu.file
+    (new menu%
+         [label "&File"]
+         [parent mnu]
+         [help-string "File related options"]))
+  (define mnu.edit
+    (new menu%
+         [label "Edit"]
+         [parent mnu]))
+  (define mnu.edit.___
+    (append-editor-operation-menu-items mnu.edit))
 
 (define mainpane
   (new horizontal-pane%
@@ -101,20 +121,12 @@
 (define (do-kanjisearch)
   (let*([v ((dc200x200->vector100x100/session) bt)]
         [vlen (flvector-length v)]
-        [nv (make-flvector vlen 0.0)]
         [lst (for/list ([p kanjivectors])
-               (let* ([ltr (string (car p))]
-                      [lstknj (cdr p)]
-                      [scr (for/fold ([sum 0.0])
-                             ([e0 (in-flvector v)]
-                              [e1 (in-flvector lstknj)]
-                              [i  (in-range 0 vlen)])
-                             (let([fct (unsafe-fl* e0 e1)])
-                               (flvector-set! nv i fct)
-                               (unsafe-fl+ sum fct)))])
-                 (cons scr ltr)
-                 ;(debug-display-vk0-bitmap lstknj nv scr)
-                 )
+               (cons (for/fold ([sum 0.0])
+                       ([e0 (in-flvector v)]
+                        [e1 (in-flvector (cdr p))])
+                       (unsafe-fl+ sum (unsafe-fl* e0 e1)))
+                     (string (car p)))
                )
              ])
     (reverse (sort lst <
@@ -183,9 +195,10 @@
        [parent btnpane]
        [callback
         (lambda(btn evt)
-          (send kanji-results-list clear)
-          (let ([kanjilst (do-kanjisearch)])
-            (for ([e kanjilst])
+          (let*([kanjilst  (do-kanjisearch)]
+                [kanjilst2 (if (> (length kanjilst) 500) (take kanjilst 500) kanjilst)])
+            (send kanji-results-list clear)
+            (for ([e kanjilst2])
               (let ([scr (car e)]
                     [ltr (cdr e)])
                 (let ([lix (send kanji-results-list get-number)])
@@ -269,6 +282,12 @@
             (let ([eb (send mytxt2 last-position)])
               (send mytxt2 insert (format "~a ~a ~a~n" ltr ltr ltr) eb)
               (send mytxt2 change-style sty2-normal eb 'end #f))
+            ;(let loop ([u kanjivectors])
+            ;  (unless (empty? u)
+            ;    (display (car (first u)))
+            ;    (when (equal? ltr (string (car (first u))))
+            ;      (debug-display-vk0-bitmap (cdr (first u))))
+            ;    (loop (rest u))))
             
             ))]
        [style '(single vertical-label column-headers)]
@@ -321,19 +340,46 @@
 
 (send frame show #t)
 
-(define CONST_FILE_KANJIMTX "kanjimtx.dat")
-
-(define (create-indexes-if-needed)
-  (if (file-exists? CONST_FILE_KANJIIDX0)
-      (call-with-input-file CONST_FILE_KANJIIDX0
-        (lambda (fi)
-          (read fi)
+(define (load-datafiles-if-exists)
+  (when (file-exists? CONST_FILE_KANJIIDX0)
+    (call-with-input-file CONST_FILE_KANJIIDX0
+      (lambda (fi)
+        (call-with-input-file CONST_FILE_KANJIMTX
+          (lambda (fim)
+            (set! kanjiinfo (make-hash))
+            (let*([vlen (* RECMATRIX_WIDTH RECMATRIX_HEIGHT)]
+                  [bs (make-bytes (* 4 vlen))])
+              (set! kanjivectors
+                    (let loop ([u (read fi)])
+                      (if (eof-object? u)
+                          '()
+                          (begin
+                            (read-bytes! bs fim)
+                            (hash-set! kanjiinfo (first u) u)
+                            ;(display (first u))
+                            (cons (cons (string-ref (first u) 0)
+                                        (for/flvector ([i (in-range 0 vlen)])
+                                          (floating-point-bytes->real bs #t (* i 4) (+ 4 (* i 4)))))
+                                  (loop (read fi)))
+                            )
+                          )
+                      )
+                    )
+              )
+            )
           )
         )
+      )
+    )
+  )
+(define (create-indexes-if-needed)
+  (if (file-exists? CONST_FILE_KANJIIDX0)
+      (load-datafiles-if-exists)
       (call-with-output-file CONST_FILE_KANJIIDX0
         (lambda (fo)
           (call-with-output-file CONST_FILE_KANJIMTX
             (lambda (fom)
+              (define bs (make-bytes (* 4 RECMATRIX_WIDTH RECMATRIX_HEIGHT)))
               (define knji->vec (kanjiletter->vector100x100/session))
               (call-with-input-file "edict/kanjidic2.xml"
                 (lambda (fi)
@@ -469,9 +515,8 @@
                            
                            (let ([mtxpos (file-position fom)])
                              (let*([kflv (knji->vec knj-letter)]
-                                   [kflvlen (flvector-length kflv)]
-                                   [bs (make-bytes (* 4 kflvlen))])
-                               (for*([e (in-flvector kflv)]
+                                   [kflvlen (flvector-length kflv)])
+                               (for ([e (in-flvector kflv)]
                                      [i (in-range 0 kflvlen)])
                                  (real->floating-point-bytes e 4 #t bs (* i 4)))
                                (write-bytes bs fom)
@@ -479,11 +524,6 @@
                              (write (list knj-letter mtxpos knj-grade knj-strokenum knj-variant knj-freq knj-jlpt knj-readings knj-meanings knj-nanori knj-dicref) fo)
                              )
                            
-                           ;(let*([vlen (* TODOW TODOH)]
-                           ;      [bs (make-bytes (* 4 vlen))])
-                           ;  (read-bytes! bs fim)
-                           ;  (for/flvector ([i (in-range 0 vlen)])
-                           ;    (floating-point-bytes->real bs #t (* i 4) (+ 4 (* i 4)))))
                            )
                          ]
                         [else (void)]
@@ -498,8 +538,6 @@
       )
   )
 
-(define RECMATRIX_WIDTH 32);50);100)
-(define RECMATRIX_HEIGHT 32);50);100)
 
 (define (debug-display-vk0-bitmap vk0 [vky #f] [scr #f])
   (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
@@ -658,7 +696,7 @@
       )
     )
   )
-    
+
 (define (kanjiletter->vector100x100/session)
   (define ->vec (dc200x200->vector100x100/session))
   (define kbt (make-bitmap 200 200 #t))
@@ -675,9 +713,10 @@
         (->vec kbt)))))
 
 (let ()
+  ;(load-datafiles-if-exists)
   (define knji (kanjiletter->vector100x100/session))
   (set! kanjivectors
-        (for/list ([j "廓郭学季享教孤菰厚好孔孝酵仔子孜字塾熟淳醇序存孫遜惇敦乳浮勃孟猛遊李俘吼"]) ; 
+        (for/list ([j "廓"])
           (cons j (knji (string j)))
           ))
   )
