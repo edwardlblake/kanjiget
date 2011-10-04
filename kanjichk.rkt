@@ -195,19 +195,35 @@
        [parent btnpane]
        [callback
         (lambda(btn evt)
+          (define (cmaify l)
+            (string-append* (add-between l ", ")))
+          (define (cmaify2 l)
+            (string-append* (add-between l " / ")))
           (let*([kanjilst  (do-kanjisearch)]
                 [kanjilst2 (if (> (length kanjilst) 500) (take kanjilst 500) kanjilst)])
             (send kanji-results-list clear)
             (for ([e kanjilst2])
-              (let ([scr (car e)]
-                    [ltr (cdr e)])
-                (let ([lix (send kanji-results-list get-number)])
-                  (send kanji-results-list append (format "~a" (add1 lix)) ltr)
-                  (send kanji-results-list set-string lix ltr 1)
-                  (send kanji-results-list set-string lix (format "~a" -1) 2)
-                  (send kanji-results-list set-string lix "TODO" 3)
-                  (send kanji-results-list set-string lix "TODO" 4)
-                  (send kanji-results-list set-string lix (format "~a" scr) 5)
+              (let* ([scr (car e)]
+                     [ltr (cdr e)]
+                     [knfl (hash-ref kanjiinfo ltr)])
+                (let ([lix (send kanji-results-list get-number)]
+                      [knf-grade (list-ref knfl 2)]
+                      ;[knf-strokenum (list-ref knfl 3)]
+                      [knj-readings (list-ref knfl 7)]
+                      [knj-meanings (list-ref knfl 8)]
+                      )
+                  (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
+                        [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
+                        [readingslist (append (hash-ref knj-readings2 "ja_on" '()) (hash-ref knj-readings2 "ja_ku" '()))]
+                        [meaningslist (hash-ref knj-meanings2 "en" '())])
+                  
+                    (send kanji-results-list append (format "~a" (add1 lix)) ltr)
+                    (send kanji-results-list set-string lix ltr 1)
+                    (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
+                    (send kanji-results-list set-string lix (cmaify2 readingslist) 3)
+                    (send kanji-results-list set-string lix (cmaify  meaningslist) 4)
+                    (send kanji-results-list set-string lix (format "~a" scr) 5)
+                    )
                   )
                 )
               )
@@ -271,23 +287,27 @@
        [parent rightsidepane]
        [callback
         (lambda (lst evt)
-          (let ([ltr (send lst get-data (send lst get-selection))])
-            (send mytxt select-all)
-            (send mytxt clear)
-            (let ([eb (send mytxt last-position)])
-              (send mytxt insert ltr eb)
-              (send mytxt change-style sty-kanji eb 'end #f))
-            (send mytxt2 select-all)
-            (send mytxt2 clear)
-            (let ([eb (send mytxt2 last-position)])
-              (send mytxt2 insert (format "~a ~a ~a~n" ltr ltr ltr) eb)
-              (send mytxt2 change-style sty2-normal eb 'end #f))
-            ;(let loop ([u kanjivectors])
-            ;  (unless (empty? u)
-            ;    (display (car (first u)))
-            ;    (when (equal? ltr (string (car (first u))))
-            ;      (debug-display-vk0-bitmap (cdr (first u))))
-            ;    (loop (rest u))))
+          (let ([sel (send lst get-selection)])
+            (unless (equal? #f sel)
+              (let ([ltr (send lst get-data sel)])
+                (send mytxt select-all)
+                (send mytxt clear)
+                (let ([eb (send mytxt last-position)])
+                  (send mytxt insert ltr eb)
+                  (send mytxt change-style sty-kanji eb 'end #f))
+                (send mytxt2 select-all)
+                (send mytxt2 clear)
+                (let ([eb (send mytxt2 last-position)])
+                  (send mytxt2 insert (format "~a ~a ~a~n" ltr ltr ltr) eb)
+                  (send mytxt2 change-style sty2-normal eb 'end #f))
+                ;(let loop ([u kanjivectors])
+                ;  (unless (empty? u)
+                ;    (display (car (first u)))
+                ;    (when (equal? ltr (string (car (first u))))
+                ;      (debug-display-vk0-bitmap (cdr (first u))))
+                ;    (loop (rest u))))
+                )
+              )
             
             ))]
        [style '(single vertical-label column-headers)]
