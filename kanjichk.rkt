@@ -466,10 +466,24 @@
                                )
                              )
                            (display knj-letter)
-                           (write (list knj-letter knj-grade knj-strokenum knj-variant knj-freq knj-jlpt knj-readings knj-meanings knj-nanori knj-dicref) fo)
-                           ;(write (list knj-letter (for/vector ([e (in-flvector knj-vec)]) e)) fom)
-                           (write (list knj-letter (for/vector ([e (in-flvector (knji->vec knj-letter))]) e)) fom)
-                           ; write vector
+                           
+                           (let ([mtxpos (file-position fom)])
+                             (let*([kflv (knji->vec knj-letter)]
+                                   [kflvlen (flvector-length kflv)]
+                                   [bs (make-bytes (* 4 kflvlen))])
+                               (for*([e (in-flvector kflv)]
+                                     [i (in-range 0 kflvlen)])
+                                 (real->floating-point-bytes e 4 #t bs (* i 4)))
+                               (write-bytes bs fom)
+                               )
+                             (write (list knj-letter mtxpos knj-grade knj-strokenum knj-variant knj-freq knj-jlpt knj-readings knj-meanings knj-nanori knj-dicref) fo)
+                             )
+                           
+                           ;(let*([vlen (* TODOW TODOH)]
+                           ;      [bs (make-bytes (* 4 vlen))])
+                           ;  (read-bytes! bs fim)
+                           ;  (for/flvector ([i (in-range 0 vlen)])
+                           ;    (floating-point-bytes->real bs #t (* i 4) (+ 4 (* i 4)))))
                            )
                          ]
                         [else (void)]
