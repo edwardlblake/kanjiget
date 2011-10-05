@@ -2,7 +2,16 @@
 
 (require xml
          racket/flonum
-         racket/unsafe/ops)
+         racket/unsafe/ops
+         ffi/unsafe)
+
+(define WINAPI_SetWindowPos
+  (case (system-type)
+    [[windows] (get-ffi-obj "SetWindowPos" "user32" (_fun _pointer _int _int _int _int _int _int -> _int)
+                            (lambda () (void)))]
+    [else void]))
+(define WINAPI_HWND_TOPMOST  -1)
+(define WINAPI_HWND_NOTOPMOST -2)
 
 (define STR_DRAW_KANJI_HERE "Draw Kanji Here")
 (define STR_BTN_RESTARTOVER "Restart Over")
@@ -461,6 +470,7 @@
 (send mytxtconv2 set-editor mytxt2)
 
 (send frame show #t)
+(WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
 
 (define (load-datafiles-if-exists)
   (when (file-exists? CONST_FILE_KANJIIDX0)
