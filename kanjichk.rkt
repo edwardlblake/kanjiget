@@ -7,8 +7,9 @@
 
 (define WINAPI_SetWindowPos
   (case (system-type)
-    [[windows] (get-ffi-obj "SetWindowPos" "user32" (_fun _pointer _int _int _int _int _int _int -> _int)
-                            (lambda () (void)))]
+    [[windows]
+     (get-ffi-obj "SetWindowPos" "user32" (_fun _pointer _int _int _int _int _int _int -> _int)
+                  (lambda () (void)))]
     [else void]))
 (define WINAPI_HWND_TOPMOST  -1)
 (define WINAPI_HWND_NOTOPMOST -2)
@@ -27,27 +28,93 @@
 
 (define kanjivectors '())
 (define kanjiinfo    #f)
-
+(define stn^ontop    #t)
 
 (define frame (new frame%
                    [label STR_WIN_KANJIFINDER]
-                   [width 780]
+                   [width 800]
                    [height 300]))
 
-  (define mnu
-    (new menu-bar%
-         [parent frame]))
-  (define mnu.file
-    (new menu%
-         [label "&File"]
-         [parent mnu]
-         [help-string "File related options"]))
-  (define mnu.edit
-    (new menu%
-         [label "Edit"]
-         [parent mnu]))
-  (define mnu.edit.___
-    (append-editor-operation-menu-items mnu.edit))
+(define mnu
+  (new menu-bar%
+       [parent frame]))
+(define mnu.file
+  (new menu%
+       [label "&File"]
+       [parent mnu]
+       [help-string "File related options"]))
+(define mnu.file.exit
+  (new menu-item%
+       [label "E&xit"]
+       [parent mnu.file]
+       [callback
+        (lambda (itm evt)
+          (exit 0)
+          )]
+       [shortcut #\Q]
+       [help-string "Exit"]
+       [shortcut-prefix '(ctl)]))
+(define mnu.edit
+  (new menu%
+       [label "Edit"]
+       [parent mnu]))
+
+(define mnu.edit.___
+  (append-editor-operation-menu-items mnu.edit))
+(define mnu.tools
+  (new menu%
+       [label "Tools"]
+       [parent mnu]))
+(define mnu.help
+  (new menu%
+       [label "&Help"]
+       [parent mnu]
+       [help-string "Help related options"]))
+(define mnu.tools.stayontop
+  (case (system-type)
+    [[windows]
+     (new checkable-menu-item%
+       [label "&Stay on Top"]
+       [parent mnu.tools]
+       [callback
+        (lambda (itm evt)
+          (set! stn^ontop (not stn^ontop))
+          (send itm check  stn^ontop)
+          (if stn^ontop
+              (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
+              (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_NOTOPMOST 0 0 0 0 3))
+          )]
+       [help-string "Set whether window stays on top"]
+       [checked stn^ontop]
+       )
+     ]
+    [else #f]))
+(define mnu.tools.genfiles
+  (case (system-type)
+    [[windows]
+     (new menu-item%
+       [label "(Re-)generate Matrices..."]
+       [parent mnu.tools]
+       [callback
+        (lambda (itm evt)
+          ; prompt to be sure
+          (void) ; TODO
+          )]
+       [help-string "Set whether window stays on top"]
+       )
+     ]
+    [else #f]))
+
+(define mnu.help.about
+  (new menu-item%
+       [label "&About"]
+       [parent mnu.help]
+       [callback
+        (lambda (itm evt)
+          (void);(make-about-dialog frame)
+          )]
+       [help-string "Information about"]))
+
 
 (define mainpane
   (new horizontal-pane%
@@ -92,21 +159,15 @@
       )
     )
   (send dbtg set-pen (make-object color% 0 0 0 0.1) 1 'solid)
-  (send dbtg draw-line 0 40 200 40)
-  (send dbtg draw-line 0 100 200 100)
-  (send dbtg draw-line 0 160 200 160)
-  
-  (send dbtg draw-line 40 0 40 200)
-  (send dbtg draw-line 100 0 100 200)
-  (send dbtg draw-line 160 0 160 200)
+  (for ([a '(40 100 160)])
+    (send dbtg draw-line 0 a 200 a)
+    (send dbtg draw-line a 0 a 200)
+    )
   (send dbtg set-pen (make-object color% 0 0 0 0.2) 2 'solid)
   (for ([a (list 1 2 3 4 5 6)])
-    (let* ([v (3   . * . a)]
-           [w (200 . - . v)])
+    (for ([v (list (3   . * . a) (200 . - . (3   . * . a)))])
       (send dbtg draw-line 0 v 200 v)
-      (send dbtg draw-line 0 w 200 w)
       (send dbtg draw-line v 0 v 200)
-      (send dbtg draw-line w 0 w 200)
       )
     )
   )
@@ -156,8 +217,8 @@
         (send dc draw-bitmap btg 1 1)
         )]
      [style '(border)]
-     [vert-margin 10]	 
-     [horiz-margin 10]
+     [vert-margin 2]
+     [horiz-margin 2]
      [min-width 204]
      [min-height 204]
      [stretchable-width #f]
@@ -181,7 +242,7 @@
 (define btnpane
   (new horizontal-pane%
        [parent leftsidepane]
-       [alignment '(right center)]
+       [alignment '(right top)]
        )
   )
 
@@ -223,8 +284,8 @@
                       )
                   (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
                         [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
-                        [readingslist (append (hash-ref knj-readings2 "ja_on" '()) (hash-ref knj-readings2 "ja_kun" '()))]
-                        [meaningslist (hash-ref knj-meanings2 "en" '())])
+                        [readingslist (append (dict-ref knj-readings2 'ja_on '()) (dict-ref knj-readings2 'ja_kun '()))]
+                        [meaningslist (dict-ref knj-meanings2 'en '())])
                   
                     (send kanji-results-list append (format "~a" (add1 lix)) ltr)
                     (send kanji-results-list set-string lix ltr 1)
@@ -246,19 +307,9 @@
     (init parent)
     (super-new [parent parent]
                [style '(no-border no-hscroll no-vscroll hide-hscroll hide-vscroll)]
- 	 	;[scrolls-per-page scrolls-per-page]
- 	 	;[label label]
- 	 	;[wheel-step wheel-step]
- 	 	;[line-count line-count]
- 	 	;[horizontal-inset horizontal-inset]
- 	 	;[vertical-inset vertical-inset]
- 	 	;[enabled enabled]
- 	 	;[vert-margin vert-margin]
- 	 	;[horiz-margin horiz-margin]
- 	 	[min-width 140]
- 	 	[min-height 140]
- 	 	[stretchable-width #f]
- 	 	;[stretchable-height #t]
+               [min-width 140]
+               [min-height 140]
+               [stretchable-width #f]
                )
     (define/override (on-event event)
       ;(when (send event button-down? 'left)
@@ -330,8 +381,11 @@
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "Stroke #:") eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
-                  (let ([eb (send mytxt2 last-position)])
-                    (send mytxt2 insert (format "\t~a~n" knf-strokenum) eb)
+                  (let ([eb (send mytxt2 last-position)]
+                        [strk (if ((length knf-strokenum) . > . 1)
+                                  (format "\t~a ~a~n" (first knf-strokenum) (cons "miscounts:" (rest knf-strokenum)))
+                                  (format "\t~a~n" (first knf-strokenum)))])
+                    (send mytxt2 insert strk eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f)))
                 (unless (equal? #f knf-variant)
                   (let ([eb (send mytxt2 last-position)])
@@ -359,7 +413,7 @@
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "Readings:~n") eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
-                  (for ([(k v) (in-hash knf-readings)])
+                  (for ([(k v) (in-dict knf-readings)])
                     (let ([eb (send mytxt2 last-position)])
                       (send mytxt2 insert (format "\t~a\t~a~n" k (first v)) eb)
                       (send mytxt2 change-style sty2-normal eb 'end #f))
@@ -371,7 +425,7 @@
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "Meanings:~n") eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
-                  (for ([(k v) (in-hash knf-meanings)])
+                  (for ([(k v) (in-dict knf-meanings)])
                     (let ([eb (send mytxt2 last-position)])
                       (send mytxt2 insert (format "\t~a\t~a~n" k (first v)) eb)
                       (send mytxt2 change-style sty2-normal eb 'end #f))
@@ -383,7 +437,7 @@
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "Nanori:~n") eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
-                  (for ([(k v) (in-hash knf-nanori)])
+                  (for ([(k v) (in-dict knf-nanori)])
                     (let ([eb (send mytxt2 last-position)])
                       (send mytxt2 insert (format "\t~a\t~a~n" k (first v)) eb)
                       (send mytxt2 change-style sty2-normal eb 'end #f))
@@ -395,7 +449,7 @@
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "Dictionary References:~n") eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
-                  (for ([(k v) (in-hash knf-dicref)])
+                  (for ([(k v) (in-dict knf-dicref)])
                     (let ([eb (send mytxt2 last-position)])
                       (send mytxt2 insert (format "\t~a\t~a~n" k (first v)) eb)
                       (send mytxt2 change-style sty2-normal eb 'end #f))
@@ -430,7 +484,7 @@
        [horiz-margin 2]
        [stretchable-width #t]
        [stretchable-height #t]
-       [columns '("#" "Kanji" "Strokes" "Readings" "Meanings" "Score")]
+       [columns '("#" "Kanji" "Grade" "Readings" "Meanings" "Score")]
        )
   )
 
@@ -440,7 +494,6 @@
 (send kanji-results-list set-column-width 3 160 20 10000)
 (send kanji-results-list set-column-width 4 200 20 10000)
 (send kanji-results-list set-column-width 5 50 20 10000)
-
 
 (define panekanjidesc
   (new horizontal-pane%
@@ -466,11 +519,13 @@
                           (send y set-delta-foreground (make-object color% 30 40 30))
                           y
                           )))
-(send mytxtconv set-editor mytxt)
-(send mytxtconv2 set-editor mytxt2)
-
-(send frame show #t)
-(WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
+(let ()
+  (send mytxtconv set-editor mytxt)
+  (send mytxtconv2 set-editor mytxt2)
+  (send frame show #t)
+  (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
+  (void)
+  )
 
 (define (load-datafiles-if-exists)
   (when (file-exists? CONST_FILE_KANJIIDX0)
@@ -560,8 +615,8 @@
                                          (set! knj-grade (string->number (pick-elem-cont c)))
                                          ]
                                         [[stroke_count]
-                                         (set! knj-strokenum ((compose string->number first)
-                                                              (regexp-match #rx"^[0-9]+" "1 2 3")))
+                                         (set! knj-strokenum (map string->number
+                                                                  (regexp-match* #rx"[0-9]+" (pick-elem-cont c))))
                                          ]
                                         [[variant]
                                          (set! knj-variant (pick-elem-cont c))
@@ -595,7 +650,7 @@
                                           [else (void)])
                                         )
                                       )
-                                    (set! knj-dicref tmplist-dicref)
+                                    (set! knj-dicref (hash->list tmplist-dicref))
                                     )]
                                  [[reading_meaning]
                                   (let ([tmplist-nanori   (make-hash)]
@@ -610,13 +665,13 @@
                                              (when (element? d)
                                                (case (element-name d)
                                                  [[reading]
-                                                  (let ([type (pick-elem-attr d 'r_type)]
+                                                  (let ([type (string->symbol (pick-elem-attr d 'r_type))]
                                                         [nval (pick-elem-cont d)])
                                                     (hash-set! tmplist-readings type
                                                                (cons nval (hash-ref tmplist-readings type '()))))
                                                   ]
                                                  [[meaning]
-                                                  (let ([lang (pick-elem-attr d 'm_lang "en")]
+                                                  (let ([lang (string->symbol (pick-elem-attr d 'm_lang "en"))]
                                                         [nval (pick-elem-cont d)])
                                                     (hash-set! tmplist-meanings lang
                                                                (cons nval (hash-ref tmplist-meanings lang '()))))
@@ -635,9 +690,9 @@
                                           )
                                         )
                                       )
-                                    (set! knj-readings tmplist-readings)
-                                    (set! knj-meanings tmplist-meanings)                    
-                                    (set! knj-nanori   tmplist-nanori)
+                                    (set! knj-readings (hash->list tmplist-readings))
+                                    (set! knj-meanings (hash->list tmplist-meanings))
+                                    (set! knj-nanori   (hash->list tmplist-nanori))
                                     )
                                   ]
                                  [else (void)])
@@ -844,12 +899,12 @@
         (send dkbt draw-text ltr v w)
         (->vec kbt)))))
 
-(let ()
-  ;(load-datafiles-if-exists)
-  (define knji (kanjiletter->vector100x100/session))
-  (set! kanjivectors
-        (for/list ([j "廓"])
-          (cons j (knji (string j)))
-          ))
-  )
+;(let ()
+;  ;(load-datafiles-if-exists)
+;  (define knji (kanjiletter->vector100x100/session))
+;  (set! kanjivectors
+;        (for/list ([j "廓"])
+;          (cons j (knji (string j)))
+;          ))
+;  )
 
