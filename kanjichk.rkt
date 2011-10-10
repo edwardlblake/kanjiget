@@ -27,6 +27,10 @@
 (define RECMATRIX_WIDTH 32)
 (define RECMATRIX_HEIGHT 32)
 
+; TODO: Difficult to find: 気
+; TODO: Add stroke delta (small delta is higher score) as very small score determinant
+; TODO: Add show by radical
+
 (define kanjivectors '())
 (define kanjiinfo    #f)
 (define stn^ontop    #t)
@@ -62,6 +66,10 @@
 
 (define mnu.edit.___
   (append-editor-operation-menu-items mnu.edit))
+(define mnu.view
+  (new menu%
+       [label "View"]
+       [parent mnu]))
 (define mnu.tools
   (new menu%
        [label "Tools"]
@@ -71,6 +79,38 @@
        [label "&Help"]
        [parent mnu]
        [help-string "Help related options"]))
+
+(define stn^hidenograde #t)
+(define stn^hidenojlpt #t)
+
+(define mnu.view.hidenograde
+  (new checkable-menu-item%
+       [label "Hide Entries without JP &Grade"]
+       [parent mnu.view]
+       [callback
+        (lambda (itm evt)
+          (set! stn^hidenograde (not stn^hidenograde))
+          (send itm check  stn^hidenograde)
+          (refresh-results)
+          )]
+       [help-string "Set whether to hide entries that do not have a Grade set in Japan"]
+       [checked stn^hidenograde]
+       ))
+(define mnu.view.hidenojlpt
+  (new checkable-menu-item%
+       [label "Hide Entries without &JLPT"]
+       [parent mnu.view]
+       [callback
+        (lambda (itm evt)
+          (set! stn^hidenojlpt (not stn^hidenojlpt))
+          (send itm check  stn^hidenojlpt)
+          (refresh-results)
+          )]
+       [help-string "Set whether to hide entries that are not part of a JLPT Level"]
+       [checked stn^hidenojlpt]
+       ))
+
+
 (define mnu.tools.stayontop
   (case (system-type)
     [[windows]
@@ -140,6 +180,7 @@
   )
 
 
+(define btstrokenum 0)
 (define bt (make-bitmap 200 200 #t))
 (define btg (make-bitmap 200 200 #t))
 (define dbt (new bitmap-dc% [bitmap bt]))
@@ -176,6 +217,7 @@
 (define lx #f)
 (define ly #f)
 (define (kanjidraw-stop x y)
+  (set! btstrokenum (add1 btstrokenum))
   (send dbt draw-line lx ly x y)
   (set! lx #f)
   (set! ly #f))
@@ -185,26 +227,34 @@
   (set! lx x)
   (set! ly y))
 (define (kanjidraw-clear)
+  (set! btstrokenum 0)
   (send dbt clear)
   (set! lx #f)
   (set! ly #f))
 
-(define (do-kanjisearch)
+(define (do-kanjisearch stroke strokefactor)
+  (define (/->0 o d) (if (eq? 0 d) o (/ o d)))
   (let*([v ((dc200x200->vector100x100/session) bt)]
         [vlen (flvector-length v)]
-        [lst (for/list ([p kanjivectors])
+        [lsz (for/list ([p kanjivectors])
                (cons (for/fold ([sum 0.0])
                        ([e0 (in-flvector v)]
                         [e1 (in-flvector (cdr p))])
                        (unsafe-fl+ sum (unsafe-fl* e0 e1)))
-                     (string (car p)))
+                     (car p))
                )
-             ])
+             ]
+        [lst (for/list ([zc lsz])
+               (let ([zd (- stroke (first (list-ref (hash-ref kanjiinfo (cdr zc)) 3)))])
+                 (cons (+ (car zc) (/->0 strokefactor zd))
+                       (cdr zc))))])
     (reverse (sort lst <
                    #:key car
                    #:cache-keys? #t))
     )
   )
+;(define (do-kanjistroke)
+;  )
 
 (define mycanvas%
   (class canvas%
@@ -240,6 +290,24 @@
 
 (define knjcanvas (new mycanvas% [parent leftsidepane]))
 
+(define strokescoringcombo
+  (new choice%
+       [label "Stroke Num. Factor:"]
+       [choices (list "None" "Low" "Medium" "High")]
+       [parent leftsidepane]
+       ;[callback callback]
+       [style '(horizontal-label)]
+       [selection 2]
+       ;[font normal-control-font]
+       [enabled #t]
+       ;[vert-margin 2]
+       ;[horiz-margin 2]
+       ;[min-width graphical-minimum-width]
+       ;[min-height graphical-minimum-height]
+       [stretchable-width #f]
+       [stretchable-height #f]
+       ))
+
 (define btnpane
   (new horizontal-pane%
        [parent leftsidepane]
@@ -260,45 +328,59 @@
        )
   )
 
+(define lastresults '())
+
+(define (refresh-results)
+  (define (cmaify l)
+    (string-append* (add-between l ", ")))
+  (define (cmaify2 l)
+    (string-append* (add-between l " / ")))
+  (let*([kanjilst  lastresults]
+        [kanjilst2 (if (> (length kanjilst) 500) (take kanjilst 500) kanjilst)])
+    (send kanji-results-list clear)
+    (for ([e kanjilst2])
+      (let* ([scr (car e)]
+             [ltr (cdr e)]
+             [knfl (hash-ref kanjiinfo ltr)])
+        (when (and
+               (if stn^hidenograde (number? (list-ref knfl 2))  #t)
+               (if stn^hidenojlpt (number? (list-ref knfl 6)) #t))
+          (let ([lix (send kanji-results-list get-number)]
+                [knf-grade (list-ref knfl 2)]
+                ;[knf-strokenum (list-ref knfl 3)]
+                [knj-readings (list-ref knfl 7)]
+                [knj-meanings (list-ref knfl 8)]
+                )
+            (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
+                  [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
+                  [readingslist (append (dict-ref knj-readings2 'ja_on '()) (dict-ref knj-readings2 'ja_kun '()))]
+                  [meaningslist (dict-ref knj-meanings2 'en '())])
+              
+              (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
+              (send kanji-results-list set-string lix (string ltr) 1)
+              (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
+              (send kanji-results-list set-string lix (cmaify2 readingslist) 3)
+              (send kanji-results-list set-string lix (cmaify  meaningslist) 4)
+              (send kanji-results-list set-string lix (format "~a" scr) 5)
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+
 (define btn-search
   (new button%
        [label STR_BTN_SEARCH]
        [parent btnpane]
        [callback
         (lambda(btn evt)
-          (define (cmaify l)
-            (string-append* (add-between l ", ")))
-          (define (cmaify2 l)
-            (string-append* (add-between l " / ")))
-          (let*([kanjilst  (do-kanjisearch)]
-                [kanjilst2 (if (> (length kanjilst) 500) (take kanjilst 500) kanjilst)])
-            (send kanji-results-list clear)
-            (for ([e kanjilst2])
-              (let* ([scr (car e)]
-                     [ltr (cdr e)]
-                     [knfl (hash-ref kanjiinfo ltr)])
-                (let ([lix (send kanji-results-list get-number)]
-                      [knf-grade (list-ref knfl 2)]
-                      ;[knf-strokenum (list-ref knfl 3)]
-                      [knj-readings (list-ref knfl 7)]
-                      [knj-meanings (list-ref knfl 8)]
-                      )
-                  (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
-                        [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
-                        [readingslist (append (dict-ref knj-readings2 'ja_on '()) (dict-ref knj-readings2 'ja_kun '()))]
-                        [meaningslist (dict-ref knj-meanings2 'en '())])
-                  
-                    (send kanji-results-list append (format "~a" (add1 lix)) ltr)
-                    (send kanji-results-list set-string lix ltr 1)
-                    (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
-                    (send kanji-results-list set-string lix (cmaify2 readingslist) 3)
-                    (send kanji-results-list set-string lix (cmaify  meaningslist) 4)
-                    (send kanji-results-list set-string lix (format "~a" scr) 5)
-                    )
-                  )
-                )
-              )
-            ))]
+          (set! lastresults (do-kanjisearch btstrokenum
+                                            (list-ref '(0 50.0 200.0 400.0)
+                                                      (send strokescoringcombo get-selection))))
+          (refresh-results)
+          )]
        [enabled #t]
        )
   )
@@ -351,7 +433,7 @@
           (let ([sel (send lst get-selection)])
             (unless (equal? #f sel)
               (let*([ltr (send lst get-data sel)]
-                    [knfl (hash-ref kanjiinfo ltr)]
+                    [knfl (hash-ref kanjiinfo (string-ref ltr 0))]
                     [knf-grade (list-ref knfl 2)]
                     [knf-strokenum (list-ref knfl 3)]
                     [knf-variant (list-ref knfl 4)]
@@ -484,7 +566,7 @@
       (lambda (fi)
         (call-with-input-file CONST_FILE_KANJIMTX
           (lambda (fim)
-            (set! kanjiinfo (make-hash))
+            (set! kanjiinfo (make-hasheqv))
             (let*([vlen (* RECMATRIX_WIDTH RECMATRIX_HEIGHT)]
                   [bs (make-bytes (* 4 vlen))])
               (set! kanjivectors
@@ -493,7 +575,7 @@
                           '()
                           (begin
                             (read-bytes! bs fim)
-                            (hash-set! kanjiinfo (first u) u)
+                            (hash-set! kanjiinfo (string-ref (first u) 0) u)
                             ;(display (first u))
                             (cons (cons (string-ref (first u) 0)
                                         (for/flvector ([i (in-range 0 vlen)])
@@ -807,10 +889,10 @@
               (for ([x (in-range 0 RECMATRIX_WIDTH)])
                 (let ([v (unsafe-flvector-ref vk0 (unsafe-fx+ x (unsafe-fx* y RECMATRIX_WIDTH)))])
                   (when (unsafe-fl> v 0.5)
-                    (for ([iy (in-range (unsafe-fx- y 15) (unsafe-fx+ y 15) 2)]
+                    (for ([iy (in-range (unsafe-fx- y 15) (unsafe-fx+ y 15))]; 2)]
                           #:unless (unsafe-fx< iy 0)
                           #:unless (unsafe-fx>= iy RECMATRIX_HEIGHT))
-                      (for ([ix (in-range (unsafe-fx- x 15) (unsafe-fx+ x 15) 2)]
+                      (for ([ix (in-range (unsafe-fx- x 15) (unsafe-fx+ x 15))]; 2)]
                             #:unless (unsafe-fx< ix 0)
                             #:unless (unsafe-fx>= ix RECMATRIX_WIDTH)
                             )
