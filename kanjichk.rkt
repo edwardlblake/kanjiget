@@ -30,6 +30,7 @@
 ; TODO: Difficult to find: 気
 ; TODO: Add stroke delta (small delta is higher score) as very small score determinant
 ; TODO: Add show by radical
+; TODO: "Add as radical" as action on entry to stack radical in search, "Clear Radicals" to clear list
 
 (define kanjivectors '())
 (define kanjiinfo    #f)
