@@ -27,7 +27,7 @@
 (define RECMATRIX_WIDTH 32)
 (define RECMATRIX_HEIGHT 32)
 
-; TODO: Difficult to find: 気
+; TODO: Difficult to find: 気 幸
 ; TODO: Add stroke delta (small delta is higher score) as very small score determinant
 ; TODO: Add show by radical
 ; TODO: "Add as radical" as action on entry to stack radical in search, "Clear Radicals" to clear list
@@ -942,3 +942,15 @@
 ;          ))
 ;  )
 
+(define (open-kradfile2)
+  (call-with-input-file "edict/kradzip/kradfile2"
+    (lambda (fi)
+      (let ([fic (reencode-input-port fi "EUC-JP" #f)])
+        (let loop ([ln (read-line fic 'any)])
+          (unless (eof-object? ln)
+            (displayln ln)
+            (loop (read-line fic 'any)))
+          )
+        )
+      )
+    ))
