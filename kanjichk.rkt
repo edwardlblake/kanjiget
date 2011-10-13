@@ -19,7 +19,7 @@
 (define STR_BTN_RESTARTOVER "Restart Over")
 (define STR_BTN_SEARCH      "Search")
 (define STR_WIN_KANJIFINDER "Kanji Finder")
-(define STR_WIN_KANJIRESULTS "Kanji Results")
+;(define STR_WIN_KANJIRESULTS "Kanji Results")
 
 (define CONST_FILE_KANJIIDX0 "knjidxl0.dat")
 (define CONST_FILE_KANJIMTX  "kanjimtx.dat")
@@ -423,10 +423,40 @@
       (super on-paint))
     ))
 
+(define pnlviewfilter
+  (new horizontal-panel%
+       [parent rightsidepane]
+       ;[label "Filter:"]
+       [alignment '(left top)]
+       [stretchable-height #f]
+       )
+  )
+
+(new message%
+     [label "Filter by Radicals:"]
+     [parent pnlviewfilter]	 
+     [stretchable-height #f]	 
+     [auto-resize #f])
+
+(define btnfilterviewplaceholder
+  (new check-box%
+       [label "..."]
+       [parent pnlviewfilter]
+       ;[callback callback]
+       ;[style style]
+       [value #f]
+       ;[font font]
+       ;[enabled enabled]
+       ;[vert-margin vert-margin]
+       ;[horiz-margin horiz-margin]
+       ;[min-width min-width]
+       ;[min-height min-height]
+       ;[stretchable-width stretchable-width]
+       [stretchable-height #f]))
 
 (define kanji-results-list
   (new list-box%
-       [label STR_WIN_KANJIRESULTS]
+       [label #f];STR_WIN_KANJIRESULTS]
        [choices '()]
        [parent rightsidepane]
        [callback
@@ -521,6 +551,30 @@
        [columns '("#" "Kanji" "Grade" "Readings" "Meanings" "Score")]
        )
   )
+
+(define pnlkanjiactions ; add radical
+  (new horizontal-pane%
+       [parent rightsidepane]
+       [alignment '(left top)]
+       [stretchable-height #f]
+       )
+  )
+(define btnpnlkanjiactionsplaceholder
+  (new button%
+       [label "Add as Radical 1"]
+       [parent pnlkanjiactions]
+       [callback
+        (lambda(btn evt)
+          (void))]
+       [enabled #t]))
+(define btnpnlkanjiactionsplaceholder2
+  (new button%
+       [label "Add as Radical 2"]
+       [parent pnlkanjiactions]
+       [callback
+        (lambda(btn evt)
+          (void))]
+       [enabled #t]))
 
 ;(send kanji-results-list set-column-width 0 30 20 10000)
 ;(send kanji-results-list set-column-width 1 30 20 10000)
@@ -942,15 +996,16 @@
 ;          ))
 ;  )
 
+(define krad (make-hasheq))
+(define radk (make-hasheq))
+
 (define (open-kradfile2)
-  (call-with-input-file "edict/kradzip/kradfile2"
+  (call-with-input-file "edict/kradzip/radkfile2"
     (lambda (fi)
       (let ([fic (reencode-input-port fi "EUC-JP" #f)])
         (let loop ([ln (read-line fic 'any)])
           (unless (eof-object? ln)
+            
             (displayln ln)
-            (loop (read-line fic 'any)))
-          )
-        )
-      )
-    ))
+            (loop (read-line fic 'any))))
+        ))))
