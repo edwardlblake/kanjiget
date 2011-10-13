@@ -424,7 +424,7 @@
     ))
 
 (define pnlviewfilter
-  (new horizontal-panel%
+  (new horizontal-pane%
        [parent rightsidepane]
        ;[label "Filter:"]
        [alignment '(left top)]
@@ -432,17 +432,21 @@
        )
   )
 
-(new message%
-     [label "Filter by Radicals:"]
-     [parent pnlviewfilter]	 
-     [stretchable-height #f]	 
-     [auto-resize #f])
+(define pnlviewfilterlabel
+  (new message%
+       [label "Filter by Radicals:"]
+       [parent pnlviewfilter]	 
+       [stretchable-height #f]	 
+       [auto-resize #f]))
 
-(define btnfilterviewplaceholder
+(define (make-btnfilterview-checkbox a)
   (new check-box%
-       [label "..."]
+       [label "[   ]"]
        [parent pnlviewfilter]
-       ;[callback callback]
+       [callback
+        (lambda (chk evt)
+          (display (send chk get-value))
+          )]
        ;[style style]
        [value #f]
        ;[font font]
@@ -453,6 +457,14 @@
        ;[min-height min-height]
        ;[stretchable-width stretchable-width]
        [stretchable-height #f]))
+(define btnfilterview-check1
+  (make-btnfilterview-checkbox 0))
+(define btnfilterview-check2
+  (make-btnfilterview-checkbox 1))
+(define btnfilterview-check3
+  (make-btnfilterview-checkbox 2))
+(define btnfilterview-check4
+  (make-btnfilterview-checkbox 3))
 
 (define kanji-results-list
   (new list-box%
@@ -559,22 +571,24 @@
        [stretchable-height #f]
        )
   )
-(define btnpnlkanjiactionsplaceholder
+
+(define (make-addradical-button a)
   (new button%
-       [label "Add as Radical 1"]
+       [label (format "Add as Radical ~a" (add1 a))]
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
-          (void))]
+          (send (list-ref (list btnfilterview-check1 btnfilterview-check2 btnfilterview-check3 btnfilterview-check4) a) set-label "[ X ]")
+          )]
        [enabled #t]))
-(define btnpnlkanjiactionsplaceholder2
-  (new button%
-       [label "Add as Radical 2"]
-       [parent pnlkanjiactions]
-       [callback
-        (lambda(btn evt)
-          (void))]
-       [enabled #t]))
+(define btnpnlkanjiactions-addrad1
+  (make-addradical-button 0))
+(define btnpnlkanjiactions-addrad2
+  (make-addradical-button 1))
+(define btnpnlkanjiactions-addrad3
+  (make-addradical-button 2))
+(define btnpnlkanjiactions-addrad4
+  (make-addradical-button 3))
 
 ;(send kanji-results-list set-column-width 0 30 20 10000)
 ;(send kanji-results-list set-column-width 1 30 20 10000)
