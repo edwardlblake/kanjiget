@@ -28,13 +28,15 @@
 (define RECMATRIX_HEIGHT 32)
 
 ; TODO: Difficult to find: 気 幸
-; TODO: Add stroke delta (small delta is higher score) as very small score determinant
 ; TODO: Add show by radical
 ; TODO: "Add as radical" as action on entry to stack radical in search, "Clear Radicals" to clear list
 
 (define kanjivectors '())
 (define kanjiinfo    #f)
 (define stn^ontop    #t)
+
+(define cursel-kanji #f)
+(define radicalcells (make-vector 4 #f))
 
 (define frame (new frame%
                    [label STR_WIN_KANJIFINDER]
@@ -439,13 +441,26 @@
        [stretchable-height #f]	 
        [auto-resize #f]))
 
+(define viewradicalfilter (lambda (k) #t))
 (define (make-btnfilterview-checkbox a)
   (new check-box%
-       [label "[   ]"]
+       [label "[    ]  "]
        [parent pnlviewfilter]
        [callback
         (lambda (chk evt)
-          (display (send chk get-value))
+          ;(define chkf1 (if (send btnfilterview-check1 get-value) (lambda (k) (if (hash-ref radk ) #t) (lambda (k) #t))))
+          ;(define chkf2 (if (send btnfilterview-check2 get-value) (lambda (k) #t) (lambda (k) #t)))
+          ;(define chkf3 (if (send btnfilterview-check3 get-value) (lambda (k) #t) (lambda (k) #t)))
+          ;(define chkf4 (if (send btnfilterview-check4 get-value) (lambda (k) #t) (lambda (k) #t)))
+          
+          (set! viewradicalfilter
+                (lambda (knj) #t))
+;                  (and (chkf1 knj)
+;                       (chkf2 knj)
+;                       (chkf3 knj)
+;                       (chkf4 knj))))
+            
+          (refresh-results)
           )]
        ;[style style]
        [value #f]
@@ -486,6 +501,16 @@
                     [knf-meanings (list-ref knfl 8)]
                     [knf-nanori (list-ref knfl 9)]
                     [knf-dicref (list-ref knfl 10)])
+                (cond
+                  [(> (length (hash-ref radk-list (string-ref ltr 0) '())) 0)
+                   (set! cursel-kanji (string-ref ltr 0))
+                   (enabledisable-actions)
+                   ]
+                  [else
+                   (set! cursel-kanji #f)
+                   (enabledisable-actions)
+                   ])
+                
                 (send mytxt  lock #f)
                 (send mytxt2 lock #f)
                 
@@ -572,13 +597,36 @@
        )
   )
 
+(define (enabledisable-actions)
+  (let ([enableradact (if (equal? cursel-kanji #f) #f #t)])
+    (for-each (lambda (h) (send h enable enableradact))
+              (list pnlkanjiactionslabel btnpnlkanjiactions-addrad1 btnpnlkanjiactions-addrad2 btnpnlkanjiactions-addrad3 btnpnlkanjiactions-addrad4))
+    )
+  )
+
+(define pnlkanjiactionslabel
+  (new message%
+       [label "Add as Radical:"]
+       [parent pnlkanjiactions]	 
+       [stretchable-height #f]	 
+       [auto-resize #f]))
+
+(define (radicalcells-setcell! a kanjc)
+  (vector-set! radicalcells a kanjc)
+  (send (list-ref (list btnfilterview-check1
+                        btnfilterview-check2
+                        btnfilterview-check3
+                        btnfilterview-check4) a)
+        set-label (format "  ~a  " kanjc))
+  )
+
 (define (make-addradical-button a)
   (new button%
-       [label (format "Add as Radical ~a" (add1 a))]
+       [label (format "~a" (add1 a))]
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
-          (send (list-ref (list btnfilterview-check1 btnfilterview-check2 btnfilterview-check3 btnfilterview-check4) a) set-label "[ X ]")
+          (radicalcells-setcell! a cursel-kanji)
           )]
        [enabled #t]))
 (define btnpnlkanjiactions-addrad1
@@ -1010,16 +1058,22 @@
 ;          ))
 ;  )
 
-(define krad (make-hasheq))
-(define radk (make-hasheq))
+(define radk-list (make-hasheqv))
 
 (define (open-kradfile2)
   (call-with-input-file "edict/kradzip/radkfile2"
     (lambda (fi)
-      (let ([fic (reencode-input-port fi "EUC-JP" #f)])
+      (let ([fic (reencode-input-port fi "EUC-JP" #f)]
+            [rad #f])
         (let loop ([ln (read-line fic 'any)])
           (unless (eof-object? ln)
+            (case (string-ref ln 0)
+              [[#\#] (void)]
+              [[#\$] (set! rad (string-ref ln 2))]
+              [else  (hash-set! radk-list rad (append (hash-ref radk-list rad '()) (string->list ln)))]
+              )
             
-            (displayln ln)
             (loop (read-line fic 'any))))
         ))))
+
+(open-kradfile2)
