@@ -339,35 +339,44 @@
   (define (cmaify2 l)
     (string-append* (add-between l " / ")))
   (let*([kanjilst  lastresults]
-        [kanjilst2 (if (> (length kanjilst) 500) (take kanjilst 500) kanjilst)])
+        [kanjilst1 (for/list([e kanjilst]
+                             #:when (let*([k (cdr e)]
+                                          [kfl (hash-ref kanjiinfo k)])
+                                      (and
+                                       (if stn^hidenograde (number? (list-ref kfl 2)) #t)
+                                       (if stn^hidenojlpt (number? (list-ref kfl 6)) #t)
+                                       (viewradicalfilter k))))
+                     e)]
+        [kanjilst2 (if (> (length kanjilst1) 500) (take kanjilst1 500) kanjilst1)])
     (send kanji-results-list clear)
     (for ([e kanjilst2])
       (let* ([scr (car e)]
              [ltr (cdr e)]
              [knfl (hash-ref kanjiinfo ltr)])
-        (when (and
-               (if stn^hidenograde (number? (list-ref knfl 2))  #t)
-               (if stn^hidenojlpt (number? (list-ref knfl 6)) #t))
-          (let ([lix (send kanji-results-list get-number)]
-                [knf-grade (list-ref knfl 2)]
-                ;[knf-strokenum (list-ref knfl 3)]
-                [knj-readings (list-ref knfl 7)]
-                [knj-meanings (list-ref knfl 8)]
-                )
-            (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
-                  [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
-                  [readingslist (append (dict-ref knj-readings2 'ja_on '()) (dict-ref knj-readings2 'ja_kun '()))]
-                  [meaningslist (dict-ref knj-meanings2 'en '())])
-              
-              (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
-              (send kanji-results-list set-string lix (string ltr) 1)
-              (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
-              (send kanji-results-list set-string lix (cmaify2 readingslist) 3)
-              (send kanji-results-list set-string lix (cmaify  meaningslist) 4)
-              (send kanji-results-list set-string lix (format "~a" scr) 5)
+        ;        (when (and
+        ;               (if stn^hidenograde (number? (list-ref knfl 2))  #t)
+        ;               (if stn^hidenojlpt (number? (list-ref knfl 6)) #t)
+        ;               (viewradicalfilter ltr))
+        (let ([lix (send kanji-results-list get-number)]
+              [knf-grade (list-ref knfl 2)]
+              ;[knf-strokenum (list-ref knfl 3)]
+              [knj-readings (list-ref knfl 7)]
+              [knj-meanings (list-ref knfl 8)]
               )
+          (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
+                [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
+                [readingslist (append (dict-ref knj-readings2 'ja_on '()) (dict-ref knj-readings2 'ja_kun '()))]
+                [meaningslist (dict-ref knj-meanings2 'en '())])
+            
+            (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
+            (send kanji-results-list set-string lix (string ltr) 1)
+            (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
+            (send kanji-results-list set-string lix (cmaify2 readingslist) 3)
+            (send kanji-results-list set-string lix (cmaify  meaningslist) 4)
+            (send kanji-results-list set-string lix (format "~a" scr) 5)
             )
           )
+        ;          )
         )
       )
     )
@@ -441,6 +450,30 @@
        [stretchable-height #f]	 
        [auto-resize #f]))
 
+(define (refresh-radical-filter)
+  (let*([rl (for/list ([chk (list btnfilterview-check1
+                                  btnfilterview-check2
+                                  btnfilterview-check3
+                                  btnfilterview-check4)]
+                       [idx (list 0 1 2 3)]
+                       #:when (if (send chk get-value)
+                                  (hash-ref radk-list (vector-ref radicalcells idx) #f)
+                                  #f))
+              (vector-ref radicalcells idx)
+              )])
+    (if (equal? '() rl)
+        (set! viewradicalfilter (lambda (k) #t))
+        (let*([o (let*([kl (map (lambda (r)
+                                  (apply seteqv (cons r (hash-ref radk-list r)))) rl)]
+                       [setop set-intersect])
+                   (apply setop kl)
+                   )])
+          (set! viewradicalfilter (lambda (k) (set-member? o k)))
+          )
+        )
+    )
+  )
+
 (define viewradicalfilter (lambda (k) #t))
 (define (make-btnfilterview-checkbox a)
   (new check-box%
@@ -448,18 +481,7 @@
        [parent pnlviewfilter]
        [callback
         (lambda (chk evt)
-          ;(define chkf1 (if (send btnfilterview-check1 get-value) (lambda (k) (if (hash-ref radk ) #t) (lambda (k) #t))))
-          ;(define chkf2 (if (send btnfilterview-check2 get-value) (lambda (k) #t) (lambda (k) #t)))
-          ;(define chkf3 (if (send btnfilterview-check3 get-value) (lambda (k) #t) (lambda (k) #t)))
-          ;(define chkf4 (if (send btnfilterview-check4 get-value) (lambda (k) #t) (lambda (k) #t)))
-          
-          (set! viewradicalfilter
-                (lambda (knj) #t))
-;                  (and (chkf1 knj)
-;                       (chkf2 knj)
-;                       (chkf3 knj)
-;                       (chkf4 knj))))
-            
+          (refresh-radical-filter)
           (refresh-results)
           )]
        ;[style style]
@@ -693,7 +715,6 @@
                           (begin
                             (read-bytes! bs fim)
                             (hash-set! kanjiinfo (string-ref (first u) 0) u)
-                            ;(display (first u))
                             (cons (cons (string-ref (first u) 0)
                                         (for/flvector ([i (in-range 0 vlen)])
                                           (floating-point-bytes->real bs #t (* i 4) (+ 4 (* i 4)))))
@@ -1060,8 +1081,8 @@
 
 (define radk-list (make-hasheqv))
 
-(define (open-kradfile2)
-  (call-with-input-file "edict/kradzip/radkfile2"
+(define (load-kradfile2 rkf)
+  (call-with-input-file rkf
     (lambda (fi)
       (let ([fic (reencode-input-port fi "EUC-JP" #f)]
             [rad #f])
@@ -1076,4 +1097,6 @@
             (loop (read-line fic 'any))))
         ))))
 
-(open-kradfile2)
+(load-kradfile2 "edict/kradzip/radkfile")
+(load-kradfile2 "edict/kradzip/radkfile2")
+(load-datafiles-if-exists)
