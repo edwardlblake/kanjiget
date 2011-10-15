@@ -28,8 +28,9 @@
 (define RECMATRIX_HEIGHT 32)
 
 ; TODO: Difficult to find: 気 幸
-; TODO: Add show by radical
-; TODO: "Add as radical" as action on entry to stack radical in search, "Clear Radicals" to clear list
+; TODO: Add Radical Table to browse for and add radicals
+; TODO: Add star button to push to fav a kanji entry
+; TODO: Store faved kanji
 
 (define kanjivectors '())
 (define kanjiinfo    #f)
@@ -85,6 +86,7 @@
 
 (define stn^hidenograde #t)
 (define stn^hidenojlpt #t)
+(define stn^hidenofreq #f)
 
 (define mnu.view.hidenograde
   (new checkable-menu-item%
@@ -111,6 +113,19 @@
           )]
        [help-string "Set whether to hide entries that are not part of a JLPT Level"]
        [checked stn^hidenojlpt]
+       ))
+(define mnu.view.hidenofreq
+  (new checkable-menu-item%
+       [label "Hide Entries without Freq."]
+       [parent mnu.view]
+       [callback
+        (lambda (itm evt)
+          (set! stn^hidenofreq (not stn^hidenofreq))
+          (send itm check  stn^hidenofreq)
+          (refresh-results)
+          )]
+       [help-string "Set whether to hide entries that do not have a Usage Frequency in Japan"]
+       [checked stn^hidenofreq]
        ))
 
 
@@ -344,22 +359,18 @@
                                           [kfl (hash-ref kanjiinfo k)])
                                       (and
                                        (if stn^hidenograde (number? (list-ref kfl 2)) #t)
-                                       (if stn^hidenojlpt (number? (list-ref kfl 6)) #t)
+                                       (if stn^hidenojlpt  (number? (list-ref kfl 6)) #t)
+                                       (if stn^hidenofreq  (number? (list-ref kfl 5)) #t)
                                        (viewradicalfilter k))))
                      e)]
-        [kanjilst2 (if (> (length kanjilst1) 500) (take kanjilst1 500) kanjilst1)])
+        [kanjilst2 (if (> (length kanjilst1) 200) (take kanjilst1 200) kanjilst1)])
     (send kanji-results-list clear)
     (for ([e kanjilst2])
       (let* ([scr (car e)]
              [ltr (cdr e)]
              [knfl (hash-ref kanjiinfo ltr)])
-        ;        (when (and
-        ;               (if stn^hidenograde (number? (list-ref knfl 2))  #t)
-        ;               (if stn^hidenojlpt (number? (list-ref knfl 6)) #t)
-        ;               (viewradicalfilter ltr))
         (let ([lix (send kanji-results-list get-number)]
               [knf-grade (list-ref knfl 2)]
-              ;[knf-strokenum (list-ref knfl 3)]
               [knj-readings (list-ref knfl 7)]
               [knj-meanings (list-ref knfl 8)]
               )
@@ -376,7 +387,6 @@
             (send kanji-results-list set-string lix (format "~a" scr) 5)
             )
           )
-        ;          )
         )
       )
     )
@@ -545,33 +555,31 @@
                 (send mytxt2 clear)
                 
                 (block
-                 (define (mytxt2-append-dh-dd kttl knfi)
-                   (unless (equal? #f knfi)
+                 (define (mytxt2-append-dh-dd kttl knfv knfi)
+                   (unless (equal? #f knfv)
                      (let ([eb (send mytxt2 last-position)])
                        (send mytxt2 insert (format kttl) eb)
                        (send mytxt2 change-style sty2-normal eb 'end #f))
                      (let ([eb (send mytxt2 last-position)])
-                       (send mytxt2 insert (knfi) eb)
+                       (send mytxt2 insert (knfi knfv) eb)
                        (send mytxt2 change-style sty2-normal eb 'end #f)))
                    )
-                 
-                 (mytxt2-append-dh-dd "Grade:" (lambda () (format "\t~a~n" knf-grade)))
-                 (mytxt2-append-dh-dd "Stroke #:"
-                                      (lambda ()
-                                        (if ((length knf-strokenum) . > . 1)
-                                            (format "\t~a ~a~n"
-                                                    (first knf-strokenum) 
-                                                    (cons "miscounts:" (rest knf-strokenum)))
-                                            (format "\t~a~n"
-                                                    (first knf-strokenum)))))
-                 (mytxt2-append-dh-dd "Variants:"   (lambda () (format "\t~a~n" knf-variant)))
-                 (mytxt2-append-dh-dd "Usage Freq:" (lambda () (format "\t~a~n" knf-freq)))
-                 (mytxt2-append-dh-dd "JLPT:"       (lambda () (format "\t~a~n" knf-jlpt)))
+                 (define mytxt2deffmt (lambda (a) (format "\t~a~n" a)))
+                 (mytxt2-append-dh-dd "Grade:" knf-grade mytxt2deffmt)
+                 (mytxt2-append-dh-dd "Stroke #:" knf-strokenum
+                                      (lambda (a)
+                                        (if ((length a) . > . 1)
+                                            (format "\t~a ~a~n" (first a) 
+                                                    (cons "miscounts:" (rest a)))
+                                            (format "\t~a~n" (first a)))))
+                 (mytxt2-append-dh-dd "Variants:"   knf-variant mytxt2deffmt)
+                 (mytxt2-append-dh-dd "Usage Freq:" knf-freq    mytxt2deffmt)
+                 (mytxt2-append-dh-dd "JLPT:"       knf-jlpt    mytxt2deffmt)
                  )
                  
                 (block
                  (define (mytxt2-append-dh-dl kttl knfl)
-                   (unless (equal? #f knfl)
+                   (unless (or (equal? #f knfl) ((dict-count knfl) . < . 1))
                      (let ([eb (send mytxt2 last-position)])
                        (send mytxt2 insert (format "~a~n" kttl) eb)
                        (send mytxt2 change-style sty2-normal eb 'end #f))
@@ -659,6 +667,21 @@
   (make-addradical-button 2))
 (define btnpnlkanjiactions-addrad4
   (make-addradical-button 3))
+(define pnlkanjiactionslabel2
+  (new message%
+       [label " | "]
+       [parent pnlkanjiactions]	 
+       [stretchable-height #f]	 
+       [auto-resize #f]))
+(define btnpnlkanjiactions-favknj
+  (new button%
+       [label "TODO: Fav Kanji"]
+       [parent pnlkanjiactions]
+       [callback
+        (lambda(btn evt)
+          (void)
+          )]
+       [enabled #t]))
 
 ;(send kanji-results-list set-column-width 0 30 20 10000)
 ;(send kanji-results-list set-column-width 1 30 20 10000)
@@ -1100,3 +1123,4 @@
 (load-kradfile2 "edict/kradzip/radkfile")
 (load-kradfile2 "edict/kradzip/radkfile2")
 (load-datafiles-if-exists)
+(enabledisable-actions)
