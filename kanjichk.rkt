@@ -354,14 +354,17 @@
   (define (cmaify2 l)
     (string-append* (add-between l " / ")))
   (let*([kanjilst  lastresults]
-        [kanjilst1 (for/list([e kanjilst]
+        [kanjilst1 (for/list([i (in-range 0 (length kanjilst))]
+                             [e kanjilst]
                              #:when (let*([k (cdr e)]
                                           [kfl (hash-ref kanjiinfo k)])
-                                      (and
-                                       (if stn^hidenograde (number? (list-ref kfl 2)) #t)
-                                       (if stn^hidenojlpt  (number? (list-ref kfl 6)) #t)
-                                       (if stn^hidenofreq  (number? (list-ref kfl 5)) #t)
-                                       (viewradicalfilter k))))
+                                      (if (eq? i 0)
+                                          #t
+                                          (and
+                                           (if stn^hidenograde (number? (list-ref kfl 2)) #t)
+                                           (if stn^hidenojlpt  (number? (list-ref kfl 6)) #t)
+                                           (if stn^hidenofreq  (number? (list-ref kfl 5)) #t)
+                                           (viewradicalfilter k)))))
                      e)]
         [kanjilst2 (if (> (length kanjilst1) 200) (take kanjilst1 200) kanjilst1)])
     (send kanji-results-list clear)
