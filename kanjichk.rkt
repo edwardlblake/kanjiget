@@ -359,7 +359,7 @@
                              #:when (let*([k (cdr e)]
                                           [kfl (hash-ref kanjiinfo k)])
                                       (if (eq? i 0)
-                                          #t
+                                          (viewradicalfilter k)
                                           (and
                                            (if stn^hidenograde (number? (list-ref kfl 2)) #t)
                                            (if stn^hidenojlpt  (number? (list-ref kfl 6)) #t)
