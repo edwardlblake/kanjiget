@@ -4,7 +4,8 @@
          racket/block
          racket/flonum
          racket/unsafe/ops
-         ffi/unsafe)
+         ffi/unsafe
+         "radicaldialog.rkt")
 
 (define WINAPI_SetWindowPos
   (case (system-type)
@@ -127,6 +128,36 @@
        [help-string "Set whether to hide entries that do not have a Usage Frequency in Japan"]
        [checked stn^hidenofreq]
        ))
+
+(define mnu.view.manualradical
+  (new menu%
+       [label "Add Filter by Radical"]
+       [parent mnu.view]
+       [help-string "Set whether to hide entries that do not have a Usage Frequency in Japan"]
+       ))
+
+(define (add-manual-radical-slot a)
+  (new menu-item%
+       [label (format "Slot ~a" (add1 a))]
+       [parent mnu.view.manualradical]
+       [callback
+        (lambda (itm evt)
+          (radicalcells-setcell! a (pick-radical-from-list frame))
+          (refresh-radical-filter)
+          (refresh-results)
+          )]
+       [help-string (format "Manually add radical to slot ~a" (add1 a))]
+       )
+  )
+(define mnu.view.manualradical.slot1
+  (add-manual-radical-slot 0))
+(define mnu.view.manualradical.slot2
+  (add-manual-radical-slot 1))
+(define mnu.view.manualradical.slot3
+  (add-manual-radical-slot 2))
+(define mnu.view.manualradical.slot4
+  (add-manual-radical-slot 3))
+
 
 
 (define mnu.tools.stayontop
@@ -348,6 +379,11 @@
 
 (define lastresults '())
 
+(define (shrink-string-for-list-if-needed str)
+  (if (<= (string-length str) 200)
+      str
+      (format "~a..." (substring str 0 197))))
+
 (define (refresh-results)
   (define (cmaify l)
     (string-append* (add-between l ", ")))
@@ -385,8 +421,8 @@
             (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
             (send kanji-results-list set-string lix (string ltr) 1)
             (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
-            (send kanji-results-list set-string lix (cmaify2 readingslist) 3)
-            (send kanji-results-list set-string lix (cmaify  meaningslist) 4)
+            (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify2 readingslist)) 3)
+            (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify  meaningslist)) 4)
             (send kanji-results-list set-string lix (format "~a" scr) 5)
             )
           )
@@ -494,6 +530,11 @@
        [parent pnlviewfilter]
        [callback
         (lambda (chk evt)
+          (when (and 
+                 (equal? #f (vector-ref radicalcells a))
+                 (equal? #t (send chk get-value)))
+            (radicalcells-setcell! a (pick-radical-from-list frame))
+            )
           (refresh-radical-filter)
           (refresh-results)
           )]
@@ -633,16 +674,18 @@
 (define (enabledisable-actions)
   (let ([enableradact (if (equal? cursel-kanji #f) #f #t)])
     (for-each (lambda (h) (send h enable enableradact))
-              (list pnlkanjiactionslabel btnpnlkanjiactions-addrad1 btnpnlkanjiactions-addrad2 btnpnlkanjiactions-addrad3 btnpnlkanjiactions-addrad4))
+              (list btnpnlkanjiactions-addasrad
+                    ;pnlkanjiactionslabel btnpnlkanjiactions-addrad1 btnpnlkanjiactions-addrad2 btnpnlkanjiactions-addrad3 btnpnlkanjiactions-addrad4
+                    ))
     )
   )
 
-(define pnlkanjiactionslabel
-  (new message%
-       [label "Add as Radical:"]
-       [parent pnlkanjiactions]	 
-       [stretchable-height #f]	 
-       [auto-resize #f]))
+;(define pnlkanjiactionslabel
+;  (new message%
+;       [label "Add as Radical:"]
+;       [parent pnlkanjiactions]	 
+;       [stretchable-height #f]	 
+;       [auto-resize #f]))
 
 (define (radicalcells-setcell! a kanjc)
   (vector-set! radicalcells a kanjc)
@@ -653,6 +696,38 @@
         set-label (format "  ~a  " kanjc))
   )
 
+(define btnpnlkanjiactions-addasrad
+  (new button%
+       [label "Add as Radical"]
+       [parent pnlkanjiactions]
+       [callback
+        (lambda(btn evt)
+          (define pmn
+            (new popup-menu% 
+                 ;[title title]
+                 ;[popdown-callback popdown-callback]
+                 ;[demand-callback demand-callback]
+                 ;[font font]
+                 ))
+          (define (make-addradical-menuitem a)
+            (new menu-item%
+                 [label (format "Slot ~a" (add1 a))]
+                 [parent pmn]
+                 [callback
+                  (lambda(btn evt)
+                    (radicalcells-setcell! a cursel-kanji)
+                    )]
+                 [help-string (format "Add to slot ~a" (add1 a))]))
+          (make-addradical-menuitem 0)
+          (make-addradical-menuitem 1)
+          (make-addradical-menuitem 2)
+          (make-addradical-menuitem 3)
+          
+          (send btn popup-menu pmn 0 0)
+          )]
+       [enabled #t]))
+
+#|
 (define (make-addradical-button a)
   (new button%
        [label (format "~a" (add1 a))]
@@ -676,9 +751,21 @@
        [parent pnlkanjiactions]	 
        [stretchable-height #f]	 
        [auto-resize #f]))
+|#
+
+(define btnpnlkanjiactions-knj2rad
+  (new button%
+       [label "(TODO) Radicals of Kanji"]
+       [parent pnlkanjiactions]
+       [callback
+        (lambda(btn evt)
+          (void)
+          )]
+       [enabled #t]))
+
 (define btnpnlkanjiactions-favknj
   (new button%
-       [label "TODO: Fav Kanji"]
+       [label "(TODO) Bookmark Kanji"]
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
@@ -1125,5 +1212,6 @@
 
 (load-kradfile2 "edict/kradzip/radkfile")
 (load-kradfile2 "edict/kradzip/radkfile2")
-(load-datafiles-if-exists)
+;(load-datafiles-if-exists)
 (enabledisable-actions)
+
