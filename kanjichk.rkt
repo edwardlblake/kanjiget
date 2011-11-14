@@ -5,7 +5,8 @@
          racket/flonum
          racket/unsafe/ops
          ffi/unsafe
-         "radicaldialog.rkt")
+         "radicaldialog.rkt"
+         "intoradicalsdialog.rkt")
 
 (define WINAPI_SetWindowPos
   (case (system-type)
@@ -38,6 +39,7 @@
 (define stn^ontop    #t)
 
 (define cursel-kanji #f)
+(define cursel-radical #f)
 (define radicalcells (make-vector 4 #f))
 
 (define frame (new frame%
@@ -577,13 +579,14 @@
                     [knf-meanings (list-ref knfl 8)]
                     [knf-nanori (list-ref knfl 9)]
                     [knf-dicref (list-ref knfl 10)])
+                (set! cursel-kanji (string-ref ltr 0))
                 (cond
                   [(> (length (hash-ref radk-list (string-ref ltr 0) '())) 0)
-                   (set! cursel-kanji (string-ref ltr 0))
+                   (set! cursel-radical (string-ref ltr 0))
                    (enabledisable-actions)
                    ]
                   [else
-                   (set! cursel-kanji #f)
+                   (set! cursel-radical #f)
                    (enabledisable-actions)
                    ])
                 
@@ -672,7 +675,7 @@
   )
 
 (define (enabledisable-actions)
-  (let ([enableradact (if (equal? cursel-kanji #f) #f #t)])
+  (let ([enableradact (if (equal? cursel-radical #f) #f #t)])
     (for-each (lambda (h) (send h enable enableradact))
               (list btnpnlkanjiactions-addasrad
                     ;pnlkanjiactionslabel btnpnlkanjiactions-addrad1 btnpnlkanjiactions-addrad2 btnpnlkanjiactions-addrad3 btnpnlkanjiactions-addrad4
@@ -715,7 +718,7 @@
                  [parent pmn]
                  [callback
                   (lambda(btn evt)
-                    (radicalcells-setcell! a cursel-kanji)
+                    (radicalcells-setcell! a cursel-radical)
                     )]
                  [help-string (format "Add to slot ~a" (add1 a))]))
           (make-addradical-menuitem 0)
@@ -755,11 +758,28 @@
 
 (define btnpnlkanjiactions-knj2rad
   (new button%
-       [label "(TODO) Radicals of Kanji"]
+       [label "Radicals of Kanji"]
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
-          (void)
+          (define pmn
+            (new popup-menu% 
+                 ))
+          (define (make-addradical-menuitem a)
+            (new menu-item%
+                 [label (format "Slot ~a" (add1 a))]
+                 [parent pmn]
+                 [callback
+                  (lambda(btn evt)
+                    (radicalcells-setcell! a (pick-radical-from-kanji frame cursel-kanji))
+                    )]
+                 [help-string (format "Add to slot ~a" (add1 a))]))
+          (make-addradical-menuitem 0)
+          (make-addradical-menuitem 1)
+          (make-addradical-menuitem 2)
+          (make-addradical-menuitem 3)
+          
+          (send btn popup-menu pmn 0 0)
           )]
        [enabled #t]))
 
@@ -1212,6 +1232,6 @@
 
 (load-kradfile2 "edict/kradzip/radkfile")
 (load-kradfile2 "edict/kradzip/radkfile2")
-;(load-datafiles-if-exists)
+(load-datafiles-if-exists)
 (enabledisable-actions)
 
