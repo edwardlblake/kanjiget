@@ -21,7 +21,6 @@
 (define STR_BTN_RESTARTOVER "Restart Over")
 (define STR_BTN_SEARCH      "Search")
 (define STR_WIN_KANJIFINDER "Kanji Finder")
-;(define STR_WIN_KANJIRESULTS "Kanji Results")
 
 (define CONST_FILE_KANJIIDX0 "knjidxl0.dat")
 (define CONST_FILE_KANJIMTX  "kanjimtx.dat")
@@ -29,8 +28,11 @@
 (define RECMATRIX_WIDTH 32)
 (define RECMATRIX_HEIGHT 32)
 
+; Consider integrating http://kanjidamage.com/japanese_symbols
+; Add links from kanji to entries
+; Also, do same for other online references
+
 ; TODO: Difficult to find: 気 幸
-; TODO: Add Radical Table to browse for and add radicals
 ; TODO: Add star button to push to fav a kanji entry
 ; TODO: Store faved kanji
 
