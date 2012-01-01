@@ -1,12 +1,16 @@
-#lang racket/gui
+#lang typed/racket/base/no-check
+
+(require racket/class
+         racket/gui/base
+         racket/port)
 
 (provide pick-radical-from-kanji)
 
 (define (pick-radical-from-kanji parentwin knji)
   (let*([rdk #f]
-        [knjrads (make-hasheqv)]
-        [radk-bystroke (make-hasheqv)]
-        [radk-list (make-hasheqv)]
+        [knjrads (make-hasheqv '())]
+        [radk-bystroke (make-hasheqv '())]
+        [radk-list (make-hasheqv '())]
         [frame (new dialog%
                     [parent parentwin]
                     [label "Select Radical"]
@@ -23,8 +27,8 @@
       (call-with-input-file rkf
         (lambda (fi)
           (let ([fic (reencode-input-port fi "EUC-JP" #f)])
-            (let loop ([ln (read-line fic 'any)]
-                       [lr #f])
+            (let: loop : Void ([ln : String (read-line fic 'any)]
+                       [lr : String #f])
               (unless (eof-object? ln)
                 (case (string-ref ln 0)
                   [[#\#] (loop (read-line fic 'any) lr)]
@@ -38,7 +42,6 @@
                      )
                    (loop (read-line fic 'any) lr)]
                   )
-                
                 ))
             ))))
     

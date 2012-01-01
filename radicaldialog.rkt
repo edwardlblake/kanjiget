@@ -1,11 +1,17 @@
-#lang racket/gui
+#lang typed/racket/base/no-check
+
+(require racket/class
+         racket/list
+         racket/gui/base
+         racket/port
+         racket/set)
 
 (provide pick-radical-from-list)
 
 (define (pick-radical-from-list parentwin)
   (let ([rdk #f]
-        [radk-bystroke (make-hasheqv)]
-        [radk-list (make-hasheqv)]
+        [radk-bystroke (make-hasheqv '())]
+        [radk-list (make-hasheqv '())]
         [frame (new dialog%
                     [parent parentwin]
                     [label "Select Radical"]
@@ -17,7 +23,7 @@
         (lambda (fi)
           (let ([fic (reencode-input-port fi "EUC-JP" #f)]
                 [rad #f])
-            (let loop ([ln (read-line fic 'any)])
+            (let: loop : Void ([ln : String (read-line fic 'any)])
               (unless (eof-object? ln)
                 (case (string-ref ln 0)
                   [[#\#] (void)]

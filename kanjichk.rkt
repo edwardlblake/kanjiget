@@ -1,6 +1,13 @@
-#lang racket/gui
+#lang racket/base
 
-(require xml
+(require racket/class
+         racket/gui/base
+         racket/list
+         racket/string
+         racket/dict
+         racket/set
+         racket/port
+         xml
          racket/block
          racket/flonum
          racket/unsafe/ops
