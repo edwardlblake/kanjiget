@@ -12,6 +12,7 @@
          racket/flonum
          racket/unsafe/ops
          ffi/unsafe
+         "preferences.rkt"
          "radicaldialog.rkt"
          "intoradicalsdialog.rkt")
 
@@ -785,6 +786,7 @@
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
+          (printf "TODO: Bookmark ~s~n" cursel-kanji)
           (void)
           )]
        [enabled #t]))
