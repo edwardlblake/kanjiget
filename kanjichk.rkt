@@ -44,6 +44,19 @@
 ; TODO: Add star button to push to fav a kanji entry
 ; TODO: Store faved kanji
 
+(struct UDT-kanji-info
+  (kanjichar ; 0
+   ???       ; 1
+   grade     ; 2
+   strokenum ; 3
+   variant   ; 4
+   freq      ; 5
+   jlpt      ; 6
+   readings  ; 7
+   meanings  ; 8
+   nanori    ; 9
+   dicref))  ; 10
+
 (define kanjivectors '())
 (define kanjiinfo    #f)
 (define stn^ontop    #t)
@@ -306,7 +319,7 @@
                )
              ]
         [lst (for/list ([zc lsz])
-               (let ([zd (- stroke (first (list-ref (hash-ref kanjiinfo (cdr zc)) 3)))])
+               (let ([zd (- stroke (first (UDT-kanji-info-strokenum (hash-ref kanjiinfo (cdr zc)))))])
                  (cons (+ (car zc) (/->0 strokefactor zd))
                        (cdr zc))))])
     (reverse (sort lst <
@@ -409,9 +422,9 @@
                                       (if (eq? i 0)
                                           (viewradicalfilter k)
                                           (and
-                                           (if stn^hidenograde (number? (list-ref kfl 2)) #t)
-                                           (if stn^hidenojlpt  (number? (list-ref kfl 6)) #t)
-                                           (if stn^hidenofreq  (number? (list-ref kfl 5)) #t)
+                                           (if stn^hidenograde (number? (UDT-kanji-info-grade kfl)) #t)
+                                           (if stn^hidenojlpt  (number? (UDT-kanji-info-jlpt kfl)) #t)
+                                           (if stn^hidenofreq  (number? (UDT-kanji-info-freq kfl)) #t)
                                            (viewradicalfilter k)))))
                      e)]
         [kanjilst2 (if (> (length kanjilst1) 200) (take kanjilst1 200) kanjilst1)])
@@ -421,9 +434,9 @@
              [ltr (cdr e)]
              [knfl (hash-ref kanjiinfo ltr)])
         (let ([lix (send kanji-results-list get-number)]
-              [knf-grade (list-ref knfl 2)]
-              [knj-readings (list-ref knfl 7)]
-              [knj-meanings (list-ref knfl 8)]
+              [knf-grade    (UDT-kanji-info-grade knfl)]
+              [knj-readings (UDT-kanji-info-readings knfl)]
+              [knj-meanings (UDT-kanji-info-meanings knfl)]
               )
           (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
                 [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
@@ -576,15 +589,15 @@
       (unless (equal? #f sel)
         (let*([ltr (send lst get-data sel)]
               [knfl (hash-ref kanjiinfo (string-ref ltr 0))]
-              [knf-grade (list-ref knfl 2)]
-              [knf-strokenum (list-ref knfl 3)]
-              [knf-variant (list-ref knfl 4)]
-              [knf-freq (list-ref knfl 5)]
-              [knf-jlpt (list-ref knfl 6)]
-              [knf-readings (list-ref knfl 7)]
-              [knf-meanings (list-ref knfl 8)]
-              [knf-nanori (list-ref knfl 9)]
-              [knf-dicref (list-ref knfl 10)])
+              [knf-grade     (UDT-kanji-info-grade knfl)]
+              [knf-strokenum (UDT-kanji-info-strokenum knfl)]
+              [knf-variant   (UDT-kanji-info-variant knfl)]
+              [knf-freq      (UDT-kanji-info-freq knfl)]
+              [knf-jlpt      (UDT-kanji-info-jlpt knfl)]
+              [knf-readings  (UDT-kanji-info-readings knfl)]
+              [knf-meanings  (UDT-kanji-info-meanings knfl)]
+              [knf-nanori    (UDT-kanji-info-nanori knfl)]
+              [knf-dicref    (UDT-kanji-info-dicref knfl)])
           (set! cursel-kanji (string-ref ltr 0))
           (cond
             [(> (length (hash-ref radk-list (string-ref ltr 0) '())) 0)
@@ -842,7 +855,8 @@
                           '()
                           (begin
                             (read-bytes! bs fim)
-                            (hash-set! kanjiinfo (string-ref (first u) 0) u)
+                            (hash-set! kanjiinfo (string-ref (first u) 0)
+                                       (apply UDT-kanji-info u))
                             (cons (cons (string-ref (first u) 0)
                                         (for/flvector ([i (in-range 0 vlen)])
                                           (floating-point-bytes->real bs #t (* i 4) (+ 4 (* i 4)))))
