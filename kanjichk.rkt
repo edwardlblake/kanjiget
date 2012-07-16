@@ -11,7 +11,8 @@
          "kanjidb.rkt"
          "preferences.rkt"
          "radicaldialog.rkt"
-         "intoradicalsdialog.rkt")
+         "intoradicalsdialog.rkt"
+         "constants-filenames.rkt")
 
 (define WINAPI_SetWindowPos
   (case (system-type)
@@ -26,10 +27,6 @@
 (define STR_BTN_RESTARTOVER "Restart Over")
 (define STR_BTN_SEARCH      "Search")
 (define STR_WIN_KANJIFINDER "Kanji Finder")
-
-(define CONST_FILE_KANJIIDX0 "knjidxl0.dat")
-(define CONST_FILE_KANJIMTX  "kanjimtx.dat")
-(define CONST_FILE_KANJIRDC0 "knjirdc0.dat")
 
 ; Consider integrating http://kanjidamage.com/japanese_symbols
 ; Add links from kanji to entries
@@ -795,12 +792,9 @@
   (send frame show #t)
   (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
   (void)
+  (load-datafiles CONST_FILE_KANJIIDX0
+                  CONST_FILE_KANJIMTX
+                  CONST_FILE_KANJIRDC0)
+  (enabledisable-actions)
   )
-
-;(load-kradfile2 "edict/kradzip/radkfile")
-;(load-kradfile2 "edict/kradzip/radkfile2")
-(load-datafiles CONST_FILE_KANJIIDX0
-                CONST_FILE_KANJIMTX
-                CONST_FILE_KANJIRDC0)
-(enabledisable-actions)
 
