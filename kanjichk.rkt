@@ -28,6 +28,7 @@
 (define STR_BTN_SEARCH      "Search")
 (define STR_WIN_KANJIFINDER "Kanji Finder")
 
+; http://jisho.org/kanji/details/馬
 ; Consider integrating http://kanjidamage.com/japanese_symbols
 ; Add links from kanji to entries
 ; Also, do same for other online references
