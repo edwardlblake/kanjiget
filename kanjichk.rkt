@@ -9,6 +9,7 @@
          racket/block
          ffi/unsafe
          "kanjidb.rkt"
+         "wiktionarydb.rkt"
          "preferences.rkt"
          "radicaldialog.rkt"
          "intoradicalsdialog.rkt"
@@ -321,7 +322,7 @@
 
 (define strokescoringcombo
   (new choice%
-       [label "Stroke Num. Factor:"]
+       [label "Stroke # wt:"]
        [choices (list "None" "Low" "Medium" "High")]
        [parent leftsidepane]
        ;[callback callback]
@@ -750,14 +751,60 @@
 
 (define btnpnlkanjiactions-favknj
   (new button%
-       [label "(TODO) Bookmark Kanji"]
+       [label ">>"]
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
-          (printf "TODO: Bookmark ~s~n" cursel-kanji)
+          ;(send btnpnlkanjiactions-knjtxtbox set-value 
+          ;      (format "~a~a" (send btnpnlkanjiactions-knjtxtbox get-value) cursel-kanji))
+          (autocomplete-word cursel-kanji)
+          (send btnpnlkanjiactions-knjtxtbox focus)
+          )]
+       [enabled #t]))
+(define (autocomplete-word newc)
+  (define edt (send btnpnlkanjiactions-knjtxtbox get-editor))
+  (send edt insert "")
+  (if (eq? #f newc)
+      (let ()
+        (define txt (send btnpnlkanjiactions-knjtxtbox get-value))
+        (when (> (string-length txt) 0)
+          (define lst (wikt-wordlist-from-word txt))
+          (with-handlers ([exn:fail? void])
+            (for/or ([a lst])
+              (if (equal? (substring a 0 (string-length txt)) txt)
+                  (let ()
+                    (send edt insert (substring a (string-length txt)))
+                    (send edt set-position (string-length txt) (string-length (send btnpnlkanjiactions-knjtxtbox get-value)))
+                    #t
+                    )
+                  #f)))))
+      (let ()
+        (send edt insert (format "~a" newc))
+        (autocomplete-word #f))))
+
+(define btnpnlkanjiactions-knjtxtbox
+  (new text-field%
+       [parent pnlkanjiactions]
+       [label ""]
+       [callback
+        (lambda (txt evt)
+          (void);(autocomplete-word #f) ; maybe later
+          )]
+       [init-value ""]
+       [style '(single horizontal-label)]
+       ))
+
+(define btnpnlkanjiactions-lookwikt
+  (new button%
+       [label "Wikt"]
+       [parent pnlkanjiactions]
+       [callback
+        (lambda(btn evt)
+        (define txt (send btnpnlkanjiactions-knjtxtbox get-value))
           (void)
           )]
        [enabled #t]))
+
 
 (send kanji-results-list set-column-width 3 160 20 10000)
 (send kanji-results-list set-column-width 4 200 20 10000)
@@ -796,6 +843,8 @@
   (load-datafiles CONST_FILE_KANJIIDX0
                   CONST_FILE_KANJIMTX
                   CONST_FILE_KANJIRDC0)
+  (thread
+   (lambda ()
+     (load-wikt-data-files CONST_FILE_WIKTDATA CONST_FILE_WIKTINDX CONST_FILE_WIKTLKUP)))
   (enabledisable-actions)
   )
-
