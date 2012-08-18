@@ -2,25 +2,16 @@
 
 (require racket/class
          racket/gui/base
-         racket/list
+         racket/match
          racket/string
          racket/dict
          racket/block
-         ffi/unsafe
-         "kanjidb.rkt"
          "wiktionarydb.rkt"
-         "constants-filenames.rkt")
+         "stayontop.rkt")
+
+(provide open-wiktionary)
 
 (define (open-wiktionary wikttitle)
-  (define WINAPI_SetWindowPos
-    (case (system-type)
-      [[windows]
-       (get-ffi-obj "SetWindowPos" "user32" (_fun _pointer _int _int _int _int _int _int -> _int)
-                    (lambda () (void)))]
-      [else void]))
-  (define WINAPI_HWND_TOPMOST  -1)
-  (define WINAPI_HWND_NOTOPMOST -2)
-  
   (define STR_WIN_WIKTIONARYVIEWER "Wiktionary Viewer")
   
   (define stn^ontop    #t)
@@ -126,21 +117,45 @@
   (define mytxt2 (new text%))
   
   (define stl (send mytxt2 get-style-list))
-  (define stl2 (send mytxt2 get-style-list))
-  (define sty2-normal (send stl2 basic-style))
-  (define sty-normal (send stl basic-style))
+  (define sty-normal (send stl find-or-create-style (send stl basic-style)
+                           (let ([y (make-object style-delta%)])
+                             (send y set-size-mult 1.5)
+                             (send y set-delta-foreground (make-object color% 10 10 10))
+                             y
+                             )))
+  (define sty-link (send stl find-or-create-style sty-normal
+                          (let ([y (make-object style-delta%)])
+                            (send y set-delta-foreground (make-object color% 40 90 150))
+                            y
+                            )))
+  
   (define sty-title (send stl find-or-create-style sty-normal
                           (let ([y (make-object style-delta%)])
-                            (send y set-size-mult 3.0)
+                            (send y set-size-mult 2.5)
                             (send y set-alignment-off 'center)
                             (send y set-alignment-on 'center)
                             (send y set-delta-foreground (make-object color% 30 40 30))
                             y
                             )))
+  (define sty-h2 (send stl find-or-create-style sty-title
+                       (let ([y (make-object style-delta%)])
+                         (send y set-size-mult 0.8) y)))
+  (define sty-h3 (send stl find-or-create-style sty-h2
+                       (let ([y (make-object style-delta%)])
+                         (send y set-size-mult 0.8) y )))
+  (define sty-h4 (send stl find-or-create-style sty-h3
+                       (let ([y (make-object style-delta%)])
+                         (send y set-size-mult 0.8) y )))
+  (define sty-h5 (send stl find-or-create-style sty-h4
+                       (let ([y (make-object style-delta%)])
+                         (send y set-size-mult 0.8) y )))
+  (define sty-h6 (send stl find-or-create-style sty-h5
+                       (let ([y (make-object style-delta%)])
+                         (send y set-size-mult 0.8) y )))
   
   (define current-wikt-title wikttitle)
   
-  (define current-wikt-text
+  (define current-wikt-text0
     "==Japanese==
 {{ja-kanjitab|高}}
 
@@ -175,23 +190,124 @@
 
 ")
   
+  (define (curlyxpansion txt rewriteshash)
+    (define (curlyxpansion-rewrite txt posn)
+      (define inside (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
+      (define args (regexp-split #rx"\\|" inside))
+      (string-append
+       (substring txt 0 (car posn))
+       ((hash-ref rewriteshash (regexp-replace* #rx"^ +| +$" (string-downcase (car args)) "")
+                  (lambda () (lambda (a) (format "[[Template:~a]]" (car args)))))
+        (cdr args))
+       (substring txt (cdr posn)))
+      )
+    (define lst (reverse (regexp-match-positions* #rx"{{" txt)))
+    (for ([a lst])
+      (set! txt (curlyxpansion-rewrite txt (car (regexp-match-positions #rx"{{[^{}]+?}}" txt (car a))))) )
+    txt)
+  
+  (define current-wikt-text
+    (let ()
+      (define templates (make-hash))
+      (hash-set! templates "sense" 
+                 (lambda (args)
+                   (format "(''~a''):" (car args))
+                   ))
+      (curlyxpansion current-wikt-text0 templates)))
+  
+  
+  
+  
+  (define (parse-wikt-links txt)
+    (define lst (regexp-match-positions* #rx"\\[\\[([^]]+)\\]\\]" txt))
+    (values lst
+            (for/list ([posn lst]) (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))))
+            (for/list ([_ lst]) 'a)))
+  
+  (define (parse-wikt-bolditalic txt)
+    (define lst (regexp-match-positions* #rx"'''''(.+)'''''|'''(.+)'''|''(.+)''" txt))
+    (values lst
+            (for/list ([posn lst]) (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))))
+            (for/list ([_ lst]) 'i)))
+  
+  
+  (define (parse-to-markup-tree txt parse-info)
+    (if (or (pair? txt) (symbol? txt))
+        (if (pair? txt)
+            (for/fold ([alst '()]) ([a txt])
+              (define b (parse-to-markup-tree a parse-info))
+              (if (and (pair? b) (not (symbol? (car b))))
+                  (append alst b)
+                  (append alst (list b))))
+            txt)
+        (let-values ([(posns clofs msyms) (parse-info txt)])
+          (let walk ([posns posns]
+                     [clofs clofs]
+                     [msyms msyms]
+                     [start 0]
+                     [alst '()])
+            (if (pair? posns)
+                (let ([posn (car posns)]
+                      [clof (car clofs)]
+                      [msym (car msyms)])
+                  (walk (cdr posns) (cdr clofs) (cdr msyms) (cdr posn)
+                        `((,msym ,@clof)
+                          ,(substring txt start (car posn)) . ,alst)) )
+                (reverse (cons (substring txt start) alst)) )))))
+  (define (wiki-markup->tree txt)
+    (parse-to-markup-tree 
+     (parse-to-markup-tree 
+      txt
+      
+      parse-wikt-bolditalic )
+     parse-wikt-links) )
+  (define (apply-markup-tree eb te)
+    (if (pair? te)
+        (case (car te)
+          [[a] (apply-markup-tree eb (cdr te))
+               (send mytxt2 set-clickback eb (send mytxt2 last-position)
+                     (lambda (e s b) (display "Testing" ))
+                     (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
+               (send mytxt2 change-style sty-link eb 'end #f)]
+          [[b] (apply-markup-tree eb (cdr te)) (send mytxt2 change-style sty-link eb 'end #f)]
+          [[i] (apply-markup-tree eb (cdr te)) (send mytxt2 change-style sty-link eb 'end #f)]
+          [else (for ([x te])
+                  (apply-markup-tree (send mytxt2 last-position) x))])
+        (let ()
+          (send mytxt2 insert te eb)
+          (send mytxt2 change-style sty-normal eb 'end #f)
+          )))
+    
   (define (generate-wiktionary-page)
     (define (wikt-add-line txt)
-      (let ([eb (send mytxt2 last-position)])
-        (send mytxt2 insert (format "~a~n" txt) eb)
-        (send mytxt2 change-style sty2-normal eb 'end #f)))
+      (let ([eb (send mytxt2 last-position)]
+            [te (wiki-markup->tree txt)])
+        (apply-markup-tree eb te)
+        (send mytxt2 insert (format "~n") (send mytxt2 last-position))
+        ))
     
-    (define (wikt-add-title txt)
+    (define (wikt-add-heading txt sty)
       (let ([eb (send mytxt2 last-position)])
         (send mytxt2 insert (format "~a~n" txt) eb)
-        (send mytxt2 change-style sty-title eb 'end #f)))
+        (send mytxt2 change-style sty eb 'end #f) ))
     
     (send mytxt2 lock #f)
     (send mytxt2 select-all)
     (send mytxt2 clear)
     
-    (wikt-add-title current-wikt-title)
-    (wikt-add-line current-wikt-text)
+    (wikt-add-heading current-wikt-title sty-title)
+      
+      (let ([strp (open-input-string current-wikt-text)])
+        (for ([ln (in-lines strp)])
+          (match ln
+            [[regexp #rx"^======(.+)======$" (list _ a)] (wikt-add-heading a sty-h6)]
+            [[regexp #rx"^=====(.+)=====$" (list _ a)] (wikt-add-heading a sty-h5)]
+            [[regexp #rx"^====(.+)====$" (list _ a)] (wikt-add-heading a sty-h4)]
+            [[regexp #rx"^===(.+)===$" (list _ a)] (wikt-add-heading a sty-h3)]
+            [[regexp #rx"^==(.+)==$" (list _ a)] (wikt-add-heading a sty-h2)]
+            [_ (wikt-add-line ln)]
+            )
+          ))
     
     (send mytxt2 lock #t)
     (send mytxt2 set-position 0 'same #f #t 'default)

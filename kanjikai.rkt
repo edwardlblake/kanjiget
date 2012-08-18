@@ -7,36 +7,19 @@
          racket/dict
          racket/set
          racket/block
-         ffi/unsafe
          "kanjidb.rkt"
          "wiktionarydb.rkt"
+         "wiktionaryviewer.rkt"
          "preferences.rkt"
          "radicaldialog.rkt"
          "intoradicalsdialog.rkt"
-         "constants-filenames.rkt")
-
-(define WINAPI_SetWindowPos
-  (case (system-type)
-    [[windows]
-     (get-ffi-obj "SetWindowPos" "user32" (_fun _pointer _int _int _int _int _int _int -> _int)
-                  (lambda () (void)))]
-    [else void]))
-(define WINAPI_HWND_TOPMOST  -1)
-(define WINAPI_HWND_NOTOPMOST -2)
+         "constants-filenames.rkt"
+         "stayontop.rkt")
 
 (define STR_DRAW_KANJI_HERE "Draw Kanji Here")
 (define STR_BTN_RESTARTOVER "Restart Over")
 (define STR_BTN_SEARCH      "Search")
-(define STR_WIN_KANJIFINDER "Kanji Finder")
-
-; http://jisho.org/kanji/details/馬
-; Consider integrating http://kanjidamage.com/japanese_symbols
-; Add links from kanji to entries
-; Also, do same for other online references
-
-; TODO: Difficult to find: 気 幸
-; TODO: Add star button to push to fav a kanji entry
-; TODO: Store faved kanji
+(define STR_WIN_KANJIFINDER "Kanjikai")
 
 (define stn^ontop    #t)
 
@@ -183,6 +166,7 @@
        )
      ]
     [else #f]))
+#|
 (define mnu.tools.genfiles
   (case (system-type)
     [[windows]
@@ -198,6 +182,7 @@
        )
      ]
     [else #f]))
+|#
 
 (define mnu.help.about
   (new menu-item%
@@ -207,7 +192,7 @@
         (lambda (itm evt)
           (void);(make-about-dialog frame)
           )]
-       [help-string "Information about"]))
+       [help-string "Information about Kanjikai"]))
 
 
 (define mainpane
@@ -796,12 +781,12 @@
 
 (define btnpnlkanjiactions-lookwikt
   (new button%
-       [label "Wikt"]
+       [label "Wiktionary"]
        [parent pnlkanjiactions]
        [callback
         (lambda(btn evt)
         (define txt (send btnpnlkanjiactions-knjtxtbox get-value))
-          (void)
+          (open-wiktionary txt)
           )]
        [enabled #t]))
 
