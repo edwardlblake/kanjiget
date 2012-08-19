@@ -7,6 +7,7 @@
          racket/dict
          racket/block
          "wiktionarydb.rkt"
+         "wiktionarytemplates.rkt"
          "stayontop.rkt")
 
 (provide open-wiktionary)
@@ -15,8 +16,6 @@
   (define STR_WIN_WIKTIONARYVIEWER "Wiktionary Viewer")
   
   (define stn^ontop    #t)
-  
-  (define cursel-kanji #f)
   
   (define (shrink-string-if-needed str)
     (if (<= (string-length str) 200)
@@ -63,33 +62,10 @@
        ]
       [else #f]))
   
-  
   (define mainpane
     (new horizontal-pane%
          [parent frame]
-         [alignment '(right center)]
-         )
-    )
-  
-  (define kanji-results-editcanvaslft%
-    (class editor-canvas%
-      (init parent)
-      (super-new [parent parent]
-                 [style '(no-border no-hscroll no-vscroll hide-hscroll hide-vscroll)]
-                 [min-width 140]
-                 [min-height 140]
-                 [stretchable-width #f]
-                 )
-      (define/override (on-event event)
-        ;(when (send event button-down? 'left)
-        ;  (printf "( ~a , ~a )~n" (send event get-x) (send event get-y)))
-        (super on-event event)
-        )
-      (define/override (on-char event)
-        (super on-char event))
-      (define/override (on-paint)
-        (super on-paint))
-      ))
+         [alignment '(right center)] ))
   
   (define kanji-results-editcanvas%
     (class editor-canvas%
@@ -98,15 +74,11 @@
                  [style '(resize-corner)]
                  )
       (define/override (on-event event)
-        ;(when (send event button-down? 'left)
-        ;  (printf "( ~a , ~a )~n" (send event get-x) (send event get-y)))
-        (super on-event event)
-        )
+        (super on-event event) )
       (define/override (on-char event)
-        (super on-char event))
+        (super on-char event) )
       (define/override (on-paint)
-        (super on-paint))
-      ))
+        (super on-paint) )))
   
   
   (define (enabledisable-actions)
@@ -155,40 +127,7 @@
   
   (define current-wikt-title wikttitle)
   
-  (define current-wikt-text0
-    "==Japanese==
-{{ja-kanjitab|高}}
-
-===Adjective===
-{{ja-adj|kk|decl=i|hira=たかい|rom=takai}}
-
-# [[high]], [[tall]]
-# [[expensive]]
-
-====Antonyms====
-* {{sense|high}} [[低い]] ([[ひくい]], [[hikui]])
-* {{sense|expensive}} [[安い]] ([[やすい]], [[yasui]])
-
-====Declension====
-{{ja-i|高|たか|taka}}
-
-====Derived terms====
-* [[悪名高い]]
-* [[価値高い]]
-* [[勘定高い]]
-* [[甲高い]]
-* [[計算高い]]
-* [[気高い]]
-* [[小高い]]
-* [[空高い]]
-* [[算盤高い]]
-* [[名高い]]
-* [[誇り高い]]
-* [[物見高い]]
-
-
-
-")
+  (define current-wikt-text0 (wikt-get-definition wikttitle))
   
   (define (curlyxpansion txt rewriteshash)
     (define (curlyxpansion-rewrite txt posn)
@@ -207,36 +146,15 @@
     txt)
   
   (define current-wikt-text
-    (let ()
-      (define templates (make-hash))
-      (hash-set! templates "sense" 
-                 (lambda (args)
-                   (format "(''~a''):" (car args))
-                   ))
-      (curlyxpansion current-wikt-text0 templates)))
-  
-  
-  
-  
-  (define (parse-wikt-links txt)
-    (define lst (regexp-match-positions* #rx"\\[\\[([^]]+)\\]\\]" txt))
-    (values lst
-            (for/list ([posn lst]) (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))))
-            (for/list ([_ lst]) 'a)))
-  
-  (define (parse-wikt-bolditalic txt)
-    (define lst (regexp-match-positions* #rx"'''''(.+)'''''|'''(.+)'''|''(.+)''" txt))
-    (values lst
-            (for/list ([posn lst]) (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))))
-            (for/list ([_ lst]) 'i)))
-  
+    (curlyxpansion current-wikt-text0 
+                   (get-wiktionary-templates)))
   
   (define (parse-to-markup-tree txt parse-info)
-    (if (or (pair? txt) (symbol? txt))
+    (if (or (pair? txt) (procedure? txt))
         (if (pair? txt)
             (for/fold ([alst '()]) ([a txt])
               (define b (parse-to-markup-tree a parse-info))
-              (if (and (pair? b) (not (symbol? (car b))))
+              (if (and (pair? b) (not (procedure? (car b))))
                   (append alst b)
                   (append alst (list b))))
             txt)
@@ -254,58 +172,173 @@
                         `((,msym ,@clof)
                           ,(substring txt start (car posn)) . ,alst)) )
                 (reverse (cons (substring txt start) alst)) )))))
+  
   (define (wiki-markup->tree txt)
+    (define (parse-wikt-links txt)
+      (define lst 
+        (regexp-match-positions* #rx"\\[\\[([^]]+)\\]\\]" txt))
+      (values lst
+              (for/list ([posn lst])
+                (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))) )
+              (for/list ([posn lst]) 
+                (lambda (eb edt)
+                  (send edt set-clickback eb (send edt last-position)
+                        (lambda (e s b) 
+                          (open-wiktionary (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
+                          )
+                        (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
+                  (send edt change-style sty-link eb 'end #f)))))
+    
+    (define (parse-wikt-bolditalic txt)
+      (define lst 
+        (regexp-match-positions* #rx"'''''(.+?)'''''|'''(.+?)'''|''(.+?)''" txt))
+      (values lst
+              (for/list ([posn lst])
+                (define tak
+                  (cond
+                    [(equal? (substring txt (car posn) (+ (car posn) 5)) "'''''") 5]
+                    [(equal? (substring txt (car posn) (+ (car posn) 3)) "'''") 3]
+                    [(equal? (substring txt (car posn) (+ (car posn) 2)) "''") 2]))
+                (list (substring txt (+ (car posn) tak) (- (cdr posn) tak))) )
+              (for/list ([posn lst])
+                (define tak
+                  (cond
+                    [(equal? (substring txt (car posn) (+ (car posn) 5)) "'''''") sty-link]
+                    [(equal? (substring txt (car posn) (+ (car posn) 3)) "'''") sty-link]
+                    [(equal? (substring txt (car posn) (+ (car posn) 2)) "''") sty-link]))
+                (lambda (eb edt)
+                  (send edt change-style tak eb 'end #f) ))))
     (parse-to-markup-tree 
      (parse-to-markup-tree 
       txt
-      
       parse-wikt-bolditalic )
      parse-wikt-links) )
-  (define (apply-markup-tree eb te)
+  
+  (define (apply-markup-tree eb te edt)
     (if (pair? te)
-        (case (car te)
-          [[a] (apply-markup-tree eb (cdr te))
-               (send mytxt2 set-clickback eb (send mytxt2 last-position)
-                     (lambda (e s b) (display "Testing" ))
-                     (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
-               (send mytxt2 change-style sty-link eb 'end #f)]
-          [[b] (apply-markup-tree eb (cdr te)) (send mytxt2 change-style sty-link eb 'end #f)]
-          [[i] (apply-markup-tree eb (cdr te)) (send mytxt2 change-style sty-link eb 'end #f)]
-          [else (for ([x te])
-                  (apply-markup-tree (send mytxt2 last-position) x))])
+        (if (procedure? (car te))
+            (let ()
+              (apply-markup-tree eb (cdr te) edt)
+              ((car te) eb edt) )
+            (for ([x te])
+              (apply-markup-tree (send edt last-position) x edt) ))
         (let ()
-          (send mytxt2 insert te eb)
-          (send mytxt2 change-style sty-normal eb 'end #f)
-          )))
+          (send edt insert te eb)
+          (send edt change-style sty-normal eb 'end #f) )))
     
   (define (generate-wiktionary-page)
-    (define (wikt-add-line txt)
-      (let ([eb (send mytxt2 last-position)]
+
+    (define (wikt-add-text txt edt)
+      (let ([eb (send edt last-position)]
             [te (wiki-markup->tree txt)])
-        (apply-markup-tree eb te)
-        (send mytxt2 insert (format "~n") (send mytxt2 last-position))
+        (apply-markup-tree eb te edt)
         ))
     
-    (define (wikt-add-heading txt sty)
-      (let ([eb (send mytxt2 last-position)])
-        (send mytxt2 insert (format "~a~n" txt) eb)
-        (send mytxt2 change-style sty eb 'end #f) ))
+    (define last-listspec '())
+    (define last-listeditors (make-vector 30 #f))
+    (define last-listincrements (make-vector 30))
+    
+    (define (make-subtext edt)
+      (define subtxt (new text%))
+      (define edtsnp
+        (new editor-snip%
+             [editor subtxt]
+             [with-border? #f]
+             [left-margin 0]
+             [top-margin 0]
+             [right-margin 0]
+             [bottom-margin 0]
+             [left-inset 0]
+             [top-inset 0]
+             [right-inset 0]
+             [bottom-inset 0]
+             ))
+      
+      ; NOTE: It would be nice to use add-wide-snip here to make the editor-snips word-wrap,
+      ;       but it requires framework which is hefty.
+      (send edt insert edtsnp
+            (send edt last-position))
+      (send subtxt set-style-list (send edt get-style-list))
+      (send edtsnp set-align-top-line #t)
+      subtxt
+      )
+    (define (wikt-add-line txt edt)
+      (if (> (string-length txt) 0)
+          (case (string-ref txt 0)
+            [[#\: #\# #\*]
+             (define tt
+               (regexp-match #rx"^([#*:]+)(.*)$" txt))
+             (define listspec (string->list (cadr tt)))
+             (define listtext (caddr tt))
+             (define listspeclen (length listspec))
+             (define addnewln #f)
+             
+             (define txtedt
+               (let loop ([listspec listspec]
+                          [last-listspec (append last-listspec (build-list 30 (lambda _ #f)))]
+                          [i 0]
+                          [edt edt]
+                          [addnl (lambda _ (set! addnewln #t))])
+                 (if (and (pair? listspec) (pair? last-listspec))
+                     (let ([lastone (not (pair? (cdr listspec)))]
+                           [a (car listspec)]
+                           [x (car last-listspec)])
+                       (if (and (not lastone) (eq? a x))
+                           (loop (cdr listspec) (cdr last-listspec) (add1 i)
+                                 (vector-ref last-listeditors i)
+                                 (lambda _ (wikt-add-text (format "~n") (vector-ref last-listeditors i))))
+                           (let ()
+                             (addnl)
+                             (for ([j (in-range (add1 i) 30)])
+                               (vector-set! last-listincrements j 0)
+                               )
+                             (case a
+                               [[#\#] 
+                                (define num (add1 (vector-ref last-listincrements i)))
+                                (vector-set! last-listincrements i num)
+                                (wikt-add-text (format " ~a. " num) edt)]
+                               [[#\*] (wikt-add-text "  • " edt)]
+                               [[#\:] (wikt-add-text "    " edt)]
+                               )
+                             
+                             (let ([newedt (make-subtext edt)])
+                               (vector-set! last-listeditors i newedt)
+                               (loop (cdr listspec) (cdr last-listspec) (add1 i) newedt
+                                     (lambda _ (wikt-add-text (format "~n") newedt))) ))))
+                     edt )))
+             (set! last-listspec listspec)
+             (wikt-add-text listtext txtedt)
+             (when addnewln
+               (wikt-add-text (format "~n") edt) )]
+            
+            [else 
+             (set! last-listincrements (make-vector 30))
+             (wikt-add-text (format "~a~n" txt) edt) ])
+          
+          (let ()
+            (set! last-listincrements (make-vector 30))
+            (wikt-add-text (format "~n") edt) )))
+    
+    (define (wikt-add-heading txt sty edt)
+      (let ([eb (send edt last-position)])
+        (send edt insert (format "~a~n" txt) eb)
+        (send edt change-style sty eb 'end #f) ))
     
     (send mytxt2 lock #f)
     (send mytxt2 select-all)
     (send mytxt2 clear)
     
-    (wikt-add-heading current-wikt-title sty-title)
+    (wikt-add-heading current-wikt-title sty-title mytxt2)
       
       (let ([strp (open-input-string current-wikt-text)])
         (for ([ln (in-lines strp)])
           (match ln
-            [[regexp #rx"^======(.+)======$" (list _ a)] (wikt-add-heading a sty-h6)]
-            [[regexp #rx"^=====(.+)=====$" (list _ a)] (wikt-add-heading a sty-h5)]
-            [[regexp #rx"^====(.+)====$" (list _ a)] (wikt-add-heading a sty-h4)]
-            [[regexp #rx"^===(.+)===$" (list _ a)] (wikt-add-heading a sty-h3)]
-            [[regexp #rx"^==(.+)==$" (list _ a)] (wikt-add-heading a sty-h2)]
-            [_ (wikt-add-line ln)]
+            [[regexp #rx"^======(.+)======$" (list _ a)] (wikt-add-heading a sty-h6 mytxt2)]
+            [[regexp #rx"^=====(.+)=====$" (list _ a)] (wikt-add-heading a sty-h5 mytxt2)]
+            [[regexp #rx"^====(.+)====$" (list _ a)] (wikt-add-heading a sty-h4 mytxt2)]
+            [[regexp #rx"^===(.+)===$" (list _ a)] (wikt-add-heading a sty-h3 mytxt2)]
+            [[regexp #rx"^==(.+)==$" (list _ a)] (wikt-add-heading a sty-h2 mytxt2)]
+            [_ (wikt-add-line ln mytxt2)]
             )
           ))
     
@@ -315,14 +348,11 @@
   
   (let ()
     (send mytxtconv2 set-editor mytxt2)
+    (send mytxt2 auto-wrap #t)
     (send frame show #t)
     (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
-    ;(thread
-    ; (lambda ()
-    ;   (load-wikt-data-files CONST_FILE_WIKTDATA CONST_FILE_WIKTINDX CONST_FILE_WIKTLKUP)))
     (enabledisable-actions)
-    (generate-wiktionary-page)
-    )
-  )
+    (generate-wiktionary-page) ))
 
+(load-wikt-data-files "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
 (open-wiktionary "高")
