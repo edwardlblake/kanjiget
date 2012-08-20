@@ -100,6 +100,24 @@
                             (send y set-delta-foreground (make-object color% 40 90 150))
                             y
                             )))
+  (define sty-nolink (send stl find-or-create-style sty-normal
+                          (send (make-object style-delta%) set-delta-foreground (make-object color% 60 0 0 ))))
+  (define sty-italic (send stl find-or-create-style sty-normal
+                          (let ([y (make-object style-delta%)])
+                            (send y set-style-on 'italic)
+                            y
+                            )))
+  (define sty-bold (send stl find-or-create-style sty-normal
+                          (let ([y (make-object style-delta%)])
+                            (send y set-weight-on 'bold)
+                            y
+                            )))
+  (define sty-italicbold (send stl find-or-create-style sty-normal
+                          (let ([y (make-object style-delta%)])
+                            (send y set-style-on 'italic)
+                            (send y set-weight-on 'bold)
+                            y
+                            )))
   
   (define sty-title (send stl find-or-create-style sty-normal
                           (let ([y (make-object style-delta%)])
@@ -181,13 +199,15 @@
               (for/list ([posn lst])
                 (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))) )
               (for/list ([posn lst]) 
+                (define wrd (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
                 (lambda (eb edt)
-                  (send edt set-clickback eb (send edt last-position)
-                        (lambda (e s b) 
-                          (open-wiktionary (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
-                          )
-                        (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
-                  (send edt change-style sty-link eb 'end #f)))))
+                  (if (wikt-has-definition? wrd)
+                      (let ()
+                        (send edt set-clickback eb (send edt last-position)
+                              (lambda (e s b) (open-wiktionary wrd) )
+                              (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
+                        (send edt change-style sty-link eb 'end #f))
+                      (send edt change-style sty-nolink eb 'end #f))))))
     
     (define (parse-wikt-bolditalic txt)
       (define lst 
@@ -203,9 +223,9 @@
               (for/list ([posn lst])
                 (define tak
                   (cond
-                    [(equal? (substring txt (car posn) (+ (car posn) 5)) "'''''") sty-link]
-                    [(equal? (substring txt (car posn) (+ (car posn) 3)) "'''") sty-link]
-                    [(equal? (substring txt (car posn) (+ (car posn) 2)) "''") sty-link]))
+                    [(equal? (substring txt (car posn) (+ (car posn) 5)) "'''''") sty-italicbold]
+                    [(equal? (substring txt (car posn) (+ (car posn) 3)) "'''") sty-bold]
+                    [(equal? (substring txt (car posn) (+ (car posn) 2)) "''") sty-italic]))
                 (lambda (eb edt)
                   (send edt change-style tak eb 'end #f) ))))
     (parse-to-markup-tree 

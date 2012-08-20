@@ -1,6 +1,7 @@
 #lang racket/base
 
 (provide wikt-wordlist-from-word
+         wikt-has-definition?
          wikt-get-definition
          load-wikt-data-files
          create-wiktionary-data-file-if-needed)
@@ -18,6 +19,9 @@
           (for/list ([c (string->list wrd)]) 
             (let ([l (hash-ref wikt-lookup-hash c '())]) 
               (list->set l))))))
+
+(define (wikt-has-definition? wrd)
+  (hash-has-key? wikt-index-hash wrd))
 
 (define (wikt-get-definition wrd)
   (define v (hash-ref wikt-index-hash wrd))
@@ -150,10 +154,11 @@
              (lambda (a)
                (unless (or (equal? title "") (equal? text ""))
                  (define d (string-ref title 0))
+                 (printf "~s " title)
                  (when (eq? (char-upcase d) (char-downcase d))
                    (when (for/or ([c (in-string title)])
                            (hash-ref allkanj c #f))
-                     (display ".")
+                     (printf "INCLUDE")
                      
                      (let ([text (let ([bt (open-output-string)])
                                    (for/list ([l (in-lines (open-input-string text) 'any)])
@@ -172,7 +177,9 @@
                        (newline fx)
                        (fprintf fo "~a~n~n" text)
                        (set! title "")
-                       (set! text "")))))))
+                       (set! text ""))))
+                 (printf "~n")))
+             )
             (call-with-output-file wiktLookup
               (lambda (flo)
                 (write hshlookup flo)
@@ -186,6 +193,8 @@
       #:mode 'text ) ))
 
 ;;; To recreate wiktionary data files
-;;; (create-wiktionary-data-file "enwiktionary-20120626-pages-articles.xml" CONST_FILE_KANJIIDX0 "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+;;; (create-wiktionary-data-file-if-needed "enwiktionary-20120812-pages-articles.xml" "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
 
 ;(load-wikt-data-files "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+
+(create-wiktionary-data-file-if-needed "enwiktionary-20120812-pages-articles.xml" "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
