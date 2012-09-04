@@ -19,7 +19,7 @@
 (define STR_DRAW_KANJI_HERE "Draw Kanji Here")
 (define STR_BTN_RESTARTOVER "Restart Over")
 (define STR_BTN_SEARCH      "Search")
-(define STR_WIN_KANJIFINDER "Kanjikai")
+(define STR_WIN_KANJIFINDER "Kanjident")
 
 (define stn^ontop    #t)
 
@@ -145,8 +145,6 @@
 (define mnu.view.manualradical.slot4
   (add-manual-radical-slot 3))
 
-
-
 (define mnu.tools.stayontop
   (case (system-type)
     [[windows]
@@ -166,23 +164,6 @@
        )
      ]
     [else #f]))
-#|
-(define mnu.tools.genfiles
-  (case (system-type)
-    [[windows]
-     (new menu-item%
-       [label "(Re-)generate Matrices..."]
-       [parent mnu.tools]
-       [callback
-        (lambda (itm evt)
-          ; prompt to be sure
-          (void) ; TODO
-          )]
-       [help-string "Set whether window stays on top"]
-       )
-     ]
-    [else #f]))
-|#
 
 (define mnu.help.about
   (new menu-item%
@@ -192,7 +173,7 @@
         (lambda (itm evt)
           (void);(make-about-dialog frame)
           )]
-       [help-string "Information about Kanjikai"]))
+       [help-string "Information about Kanjident"]))
 
 
 (define mainpane
@@ -659,13 +640,6 @@
                     ))
     )
   )
-
-;(define pnlkanjiactionslabel
-;  (new message%
-;       [label "Add as Radical:"]
-;       [parent pnlkanjiactions]	 
-;       [stretchable-height #f]	 
-;       [auto-resize #f]))
 
 (define (radicalcells-setcell! a kanjc)
   (vector-set! radicalcells a kanjc)
