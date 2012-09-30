@@ -62,6 +62,7 @@
        ]
       [else #f]))
   
+  
   (define mainpane
     (new horizontal-pane%
          [parent frame]
@@ -143,10 +144,6 @@
                        (let ([y (make-object style-delta%)])
                          (send y set-size-mult 0.8) y )))
   
-  (define current-wikt-title wikttitle)
-  
-  (define current-wikt-text0 (wikt-get-definition wikttitle))
-  
   (define (curlyxpansion txt rewriteshash)
     (define (curlyxpansion-rewrite txt posn)
       (define inside (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
@@ -163,9 +160,14 @@
       (set! txt (curlyxpansion-rewrite txt (car (regexp-match-positions #rx"{{[^{}]+?}}" txt (car a))))) )
     txt)
   
+  (define current-wikt-title wikttitle)
+  
+  (define current-wikt-text-source (wikt-get-definition wikttitle))
   (define current-wikt-text
-    (curlyxpansion current-wikt-text0 
-                   (get-wiktionary-templates)))
+    (let ([txt current-wikt-text-source])
+      (curlyxpansion (regexp-replace* "<!--(.*?)-->" txt "")
+                     (get-wiktionary-templates))
+      ))
   
   (define (parse-to-markup-tree txt parse-info)
     (if (or (pair? txt) (procedure? txt))
@@ -285,56 +287,67 @@
     (define (wikt-add-line txt edt)
       (if (> (string-length txt) 0)
           (case (string-ref txt 0)
+            #|
+            || Numbered and bullet lists, and indentation
+            |#
             [[#\: #\# #\*]
              (define tt
-               (regexp-match #rx"^([#*:]+)(.*)$" txt))
-             (define listspec (string->list (cadr tt)))
-             (define listtext (caddr tt))
-             (define listspeclen (length listspec))
-             (define addnewln #f)
-             
-             (define txtedt
-               (let loop ([listspec listspec]
-                          [last-listspec (append last-listspec (build-list 30 (lambda _ #f)))]
-                          [i 0]
-                          [edt edt]
-                          [addnl (lambda _ (set! addnewln #t))])
-                 (if (and (pair? listspec) (pair? last-listspec))
-                     (let ([lastone (not (pair? (cdr listspec)))]
-                           [a (car listspec)]
-                           [x (car last-listspec)])
-                       (if (and (not lastone) (eq? a x))
-                           (loop (cdr listspec) (cdr last-listspec) (add1 i)
-                                 (vector-ref last-listeditors i)
-                                 (lambda _ (wikt-add-text (format "~n") (vector-ref last-listeditors i))))
-                           (let ()
-                             (addnl)
-                             (for ([j (in-range (add1 i) 30)])
-                               (vector-set! last-listincrements j 0)
-                               )
-                             (case a
-                               [[#\#] 
-                                (define num (add1 (vector-ref last-listincrements i)))
-                                (vector-set! last-listincrements i num)
-                                (wikt-add-text (format " ~a. " num) edt)]
-                               [[#\*] (wikt-add-text "  • " edt)]
-                               [[#\:] (wikt-add-text "    " edt)]
-                               )
-                             
-                             (let ([newedt (make-subtext edt)])
-                               (vector-set! last-listeditors i newedt)
-                               (loop (cdr listspec) (cdr last-listspec) (add1 i) newedt
-                                     (lambda _ (wikt-add-text (format "~n") newedt))) ))))
-                     edt )))
-             (set! last-listspec listspec)
-             (wikt-add-text listtext txtedt)
-             (when addnewln
-               (wikt-add-text (format "~n") edt) )]
+               (regexp-match #rx"^([#*:]+) *([^ ].*)$" txt))
+             (when tt
+               (define listspec (string->list (cadr tt)))
+               (define listtext (caddr tt))
+               (define listspeclen (length listspec))
+               (define addnewln #f)
+               
+               (define txtedt
+                 (let loop ([listspec listspec]
+                            [last-listspec (append last-listspec (build-list 30 (lambda _ #f)))]
+                            [i 0]
+                            [edt edt]
+                            [addnl (lambda _ (set! addnewln #t))])
+                   (if (and (pair? listspec) (pair? last-listspec))
+                       (let ([lastone (not (pair? (cdr listspec)))]
+                             [a (car listspec)]
+                             [x (car last-listspec)])
+                         (if (and (not lastone) (eq? a x))
+                             (loop (cdr listspec) (cdr last-listspec) (add1 i)
+                                   (vector-ref last-listeditors i)
+                                   (lambda _ (wikt-add-text (format "~n") (vector-ref last-listeditors i))))
+                             (let ()
+                               (addnl)
+                               (for ([j (in-range (add1 i) 30)])
+                                 (vector-set! last-listincrements j 0)
+                                 )
+                               (case a
+                                 [[#\#] 
+                                  (define num (add1 (vector-ref last-listincrements i)))
+                                  (vector-set! last-listincrements i num)
+                                  (wikt-add-text (format " ~a. " num) edt)]
+                                 [[#\*] (wikt-add-text "  • " edt)]
+                                 [[#\:] (wikt-add-text "    " edt)]
+                                 )
+                               
+                               (let ([newedt (make-subtext edt)])
+                                 (vector-set! last-listeditors i newedt)
+                                 (loop (cdr listspec) (cdr last-listspec) (add1 i) newedt
+                                       (lambda _ (wikt-add-text (format "~n") newedt))) ))))
+                       edt )))
+               (set! last-listspec listspec)
+               (wikt-add-text listtext txtedt)
+               (when addnewln
+                 (wikt-add-text (format "~n") edt) ))
+             ]
             
+            #|
+            || Any other non-empty line of text
+            |#
             [else 
              (set! last-listincrements (make-vector 30))
              (wikt-add-text (format "~a~n" txt) edt) ])
           
+          #|
+          || Empty line of text
+          |#
           (let ()
             (set! last-listincrements (make-vector 30))
             (wikt-add-text (format "~n") edt) )))

@@ -19,7 +19,7 @@
 (define STR_DRAW_KANJI_HERE "Draw Kanji Here")
 (define STR_BTN_RESTARTOVER "Restart Over")
 (define STR_BTN_SEARCH      "Search")
-(define STR_WIN_KANJIFINDER "Kanjident")
+(define STR_WIN_KANJIFINDER "KanjiGet")
 
 (define stn^ontop    #t)
 
@@ -173,7 +173,7 @@
         (lambda (itm evt)
           (void);(make-about-dialog frame)
           )]
-       [help-string "Information about Kanjident"]))
+       [help-string "Information about KanjiGet"]))
 
 
 (define mainpane

@@ -241,7 +241,7 @@
         * 237	"zh-attention"
         
         * 220	"ja-i"
-        (show-as "" _ ())
+        (show-as "''Declension of ~s (TODO)''" lst ((car lst)))
         
         * 210	"colloquial"
         * 203	"top3"

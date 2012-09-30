@@ -4,15 +4,23 @@
          wikt-has-definition?
          wikt-get-definition
          load-wikt-data-files
-         create-wiktionary-data-file-if-needed)
+         create-wiktionary-data-file-if-needed
+         make-wiktionary-data-files)
 
 (require racket/list
          racket/set)
 
+#|
+|| "Database" lookup variables.
+|#
 (define wikt-lookup-hash (make-hash))
 (define wikt-index-hash (make-hash))
 (define wikt-data-file #f)
 
+#|
+|| wikt-wordlist-from-word
+||   Get a word list from a word
+|#
 (define (wikt-wordlist-from-word wrd)
   (set->list
    (apply set-intersect 
@@ -20,9 +28,17 @@
             (let ([l (hash-ref wikt-lookup-hash c '())]) 
               (list->set l))))))
 
+#|
+|| wikt-has-definition?
+||   Checks if a word is in the database
+|#
 (define (wikt-has-definition? wrd)
   (hash-has-key? wikt-index-hash wrd))
 
+#|
+|| wikt-get-definition
+||   Gets the text definition of a word
+|#
 (define (wikt-get-definition wrd)
   (define v (hash-ref wikt-index-hash wrd))
   (define z (first v))
@@ -33,6 +49,10 @@
       (read-string y fd) )
     #:mode 'text))
 
+#|
+|| load-wikt-data-files
+||   Simply load the data files required to access the database.
+|#
 (define (load-wikt-data-files wiktDataFile wiktIndex wiktLookup)
   (when (and (file-exists? wiktIndex) (file-exists? wiktDataFile) (file-exists? wiktLookup))
     (set! wikt-data-file wiktDataFile)
@@ -53,6 +73,11 @@
               (read fli)))))
   )
 
+#|
+|| create-wiktionary-data-file-if-needed
+||   Main function for extracting the XML file into the simple database
+||   used by our Wiktionary viewer.
+|#
 (define (create-wiktionary-data-file-if-needed xmlfile kanjIDX wiktDataFile wiktIndex wiktLookup)
   (define (run-wiktionary-xml-file emit-content emit-tag-open emit-tag-head emit-tag-attr-name emit-tag-attr-value emit-tag-close)
     (define (send-out buf typ)
@@ -128,14 +153,28 @@
       (lambda (fo)
         (call-with-output-file wiktIndex
           (lambda (fx)
+            (define last-title "")
             (define hshlookup (make-hash))
             (define title "")
             (define text "")
             (define capture void)
+            
             (run-wiktionary-xml-file 
+             
+             #|
+             || content
+             |#
              (lambda (a)
                (capture a))
-             (lambda (a) (void)) ; tag-open
+             
+             #|
+             || tag-open
+             |#
+             (lambda (a) (void))
+             
+             #|
+             || tag-head
+             |#
              (lambda (a)
                (cond
                  [(equal? "page" a)
@@ -146,19 +185,25 @@
                  [(equal? "title" a)
                   (set! capture (lambda (a) (set! title a)))]
                  [else
-                  (set! capture (lambda (a) (void)))]
-                 )
-               )
-             (lambda (a) (void)) ; tag-attr-name
-             (lambda (a) (void)) ; tag-attr-value
+                  (set! capture (lambda (a) (void)))] ))
+             
+             #|
+             || tag-attr-name and tag-attr-value
+             |#
+             (lambda (a) (void))
+             (lambda (a) (void))
+             
+             #|
+             || tag-close
+             |#
              (lambda (a)
-               (unless (or (equal? title "") (equal? text ""))
+               (unless (or (equal? title "") (equal? text "") (equal? last-title title))
                  (define d (string-ref title 0))
-                 (printf "~s " title)
+                 (set! last-title title)
                  (when (eq? (char-upcase d) (char-downcase d))
                    (when (for/or ([c (in-string title)])
                            (hash-ref allkanj c #f))
-                     (printf "INCLUDE")
+                     (printf "Incl: ~s~n" title)
                      
                      (let ([text (let ([bt (open-output-string)])
                                    (for/list ([l (in-lines (open-input-string text) 'any)])
@@ -169,7 +214,11 @@
                                          (void)
                                          (let ()
                                            (display l bt) (newline bt)) ))
-                                   (get-output-string bt) )])
+                                   (regexp-replace* #rx"&amp;"
+                                    (regexp-replace* #rx"&lt;"
+                                     (regexp-replace* #rx"&gt;"
+                                      (regexp-replace* #rx"&quot;"
+                                       (get-output-string bt) "\"") ">") "<") "&") )])
                        (for ([c (in-string title)])
                          (hash-set! hshlookup c (cons title (hash-ref hshlookup c '()))))
                        (flush-output fo)
@@ -177,9 +226,7 @@
                        (newline fx)
                        (fprintf fo "~a~n~n" text)
                        (set! title "")
-                       (set! text ""))))
-                 (printf "~n")))
-             )
+                       (set! text "")))) )))
             (call-with-output-file wiktLookup
               (lambda (flo)
                 (write hshlookup flo)
@@ -190,11 +237,13 @@
             (flush-output fx)
             )
           #:mode 'text ) )
-      #:mode 'text ) ))
+      #:mode 'text ) )
+  )
 
-;;; To recreate wiktionary data files
-;;; (create-wiktionary-data-file-if-needed "enwiktionary-20120812-pages-articles.xml" "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
-
-;(load-wikt-data-files "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
-
-(create-wiktionary-data-file-if-needed "enwiktionary-20120812-pages-articles.xml" "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+#|
+|| make-wiktionary-data-files
+|| Shortcut function to using create-wiktionary-data-file-if-needed
+|#
+(define (make-wiktionary-data-files xmlfile)
+  (create-wiktionary-data-file-if-needed xmlfile "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+  )
