@@ -1,0 +1,61 @@
+Files in this folder are generated from data sets
+available elsewhere and are provided under the same
+licence as their source data sets.
+
+
+kanjimtx.dat
+knjidxl0.dat
+
+  These files are generated from professor Jim Breen's
+  KANJIDIC2 files which can be found at the following url:
+
+    http://www.csse.monash.edu.au/~jwb/kanjidic2/
+
+  KANJIDIC2 are copyrighted to the EDRDG, whom provide the
+  EDRDG licence at:
+
+    http://www.edrdg.org/edrdg/licence.html
+
+  They are made available under the Creative Commons
+  Attribution-ShareAlike Licence (V3.0)
+
+
+knjirdc0.dat
+
+  This file is generated from RADKFILE:
+
+    http://www.csse.monash.edu.au/~jwb/kradinf.html
+
+  The RADKFILE and KRADFILE files are coprighted by the EDRDG 
+  and available under the EDRDG Licence.
+
+  They are made available under the Creative Commons
+  Attribution-ShareAlike Licence (V3.0)
+
+  The copyright of the RADKFILE2 and KRADFILE2 files is held 
+  by Jim Rose.
+
+
+wiktdata.dat
+wiktindx.dat
+wiktlkup.dat
+
+  The Wiktionary data dump files are found at:
+
+    http://dumps.wikimedia.org/
+
+  The Wiktionary data dump files are copyrighted by the
+  MediaWiki Foundation and licensed under both the GNU 
+  Free Documentation License and the Creative Commons
+  Attribution-Share-Alike 3.0 License.
+
+    http://dumps.wikimedia.org/legal.html
+
+See:
+
+  docs/Regenerate Kanji Data Files.txt
+  docs/Regenerate Wiktionary Data Files.txt
+
+for information on generating these data files from the
+source data sets.
+

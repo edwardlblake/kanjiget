@@ -1,0 +1,14 @@
+How to build KanjiGet
+=====================
+
+KanjiGet is written in Racket, to build the application:
+
+1. Download the latest Racket from http://www.racket-lang.org/
+
+2. To (re-)generate the data files required to use the 
+   application see the notes in:
+
+       docs/Regenerate Kanji Data Files.txt
+       docs/Regenerate Wiktionary Data Files.txt
+
+3. (TODO)

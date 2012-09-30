@@ -1,5 +1,27 @@
 #lang racket/base
 
+#|
+
+    KanjiGet
+    Copyright 2011-2012 Edward L. Blake
+
+    This file is part of KanjiGet.
+
+    KanjiGet is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    KanjiGet is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with KanjiGet.  If not, see <http://www.gnu.org/licenses/>.
+
+|#
+
 (require racket/class
          racket/gui/base
          racket/list
@@ -8,6 +30,7 @@
          xml
          racket/flonum
          racket/unsafe/ops
+         "constants-filenames.rkt"
          )
 
 (provide kanjivectors
@@ -21,6 +44,8 @@
          debug-display-vk0-bitmap
          dc200x200->vector100x100/session
          kanjiletter->vector100x100/session
+         make-data-files-from-kanjidic2
+         make-data-file-from-radkfiles
          )
 
 (define RECMATRIX_WIDTH 32)
@@ -255,14 +280,14 @@
               #:mode 'text) ))))))
 
 ;;;
-;;; create-radicalsfile-if-needed-from-kradfile2list
+;;; create-radicalsfile-if-needed-from-radkfile2list
 ;;;
 ;;; Derives data files from RADKFILE
 ;;;
 ;;; FileRDC Path to RDC file
 ;;; rkflst List of paths to RADKFILE files, i.e. "radkfile" "radkfile2"
 ;;;
-(define (create-radicalsfile-if-needed-from-kradfile2list FileRDC rkflst)
+(define (create-radicalsfile-if-needed-from-radkfiles FileRDC rkflst)
   (unless (file-exists? FileRDC)
     (when (andmap file-exists? rkflst)
       (define radk-list (make-hasheqv))
@@ -474,3 +499,20 @@
     
     (send frx show #t) ))
 
+
+#|
+|| make-data-files-from-kanjidic2
+|#
+(define (make-data-files-from-kanjidic2 kanjidic2-xml-path)
+  (create-indexes-if-needed
+   (resolve-data-file-path CONST_FILE_KANJIIDX0)
+   (resolve-data-file-path CONST_FILE_KANJIMTX)
+   kanjidic2-xml-path))
+
+#|
+|| make-data-file-from-kradfile2list
+|#
+(define (make-data-file-from-radkfiles rkflst)
+  (create-radicalsfile-if-needed-from-radkfiles
+   (resolve-data-file-path CONST_FILE_KANJIRDC0)
+   rkflst))

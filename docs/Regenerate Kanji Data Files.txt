@@ -1,0 +1,101 @@
+Steps to regenerate the Kanji data files
+========================================
+
+About the files
+---------------
+
+_KANJIDIC2_
+
+KanjiGet uses professor Jim Breen's KANJIDIC2 files.
+  http://www.csse.monash.edu.au/~jwb/kanjidic2/
+KANJIDIC2 falls under the EDRDG license at:
+  http://www.edrdg.org/edrdg/licence.html
+They are made available under the Creative Commons
+Attribution-ShareAlike Licence (V3.0)
+
+_RADKFILE_
+
+KanjiGet uses RADKFILEs 
+  http://www.csse.monash.edu.au/~jwb/kradinf.html
+The RADKFILE and KRADFILE files are copright and available 
+under the EDRDG Licence. The copyright of the RADKFILE2 and 
+KRADFILE2 files is held by Jim Rose.
+
+
+Step 0, Required Tools
+----------------------
+
+* Web browser to get files
+* Decompressors for zip
+* Racket from http://www.racket-lang.org/
+
+
+
+Step 1, Download KANJIDIC2
+--------------------------
+
+1. Visit: http://www.csse.monash.edu.au/~jwb/kanjidic2/
+
+2. Download kanjidic2.xml.gz from the site and ungzip it
+   Note: Many browsers will ungzip the file during the
+         download.
+
+3. Move the kanjidic2.xml file to the folder where 
+   kanjidb.rkt resides
+
+
+Step 2, Download RADKFILEs
+--------------------------
+
+1. Visit: http://www.csse.monash.edu.au/~jwb/kradinf.html
+
+2. Download kradzip.zip from the site and unzip it
+
+3. Move the radkfile and radkfile2 files to the folder where 
+   kanjidb.rkt resides
+
+
+Step 3, Rename or delete old data files
+---------------------------------------
+
+1. The data file generator in step 4 won't create new data files if 
+   existing data files in a nearby folder (specifically the parent
+   folder, adjacent "data" folder and "data" subfolder) are still 
+   around, so rename the old files:
+
+     kanjimtx.dat
+     knjidxl0.dat
+     knjirdc0.dat
+
+
+Step 4, Generate files (steps for Windows)
+------------------------------------------
+
+1. Open a command line window and
+   cd to the folder where kanjidb.rkt resides
+
+2. If you have installed Racket in Program Files then:
+   SET PATH="C:\Program Files\Racket\"
+
+
+Step 4 continued, Generate files
+--------------------------------
+
+3. Type at the command line:
+   > racket
+   You'll see something like this:
+
+   Welcome to Racket v5.3.
+   > _
+
+4. Issue three commands:
+
+  > (require "wiktionarydb.rkt")
+  > (make-data-files-from-kanjidic2
+     "kanjidic2.xml")
+  > (make-data-file-from-radkfiles
+     '("radkfile" "radkfile2"))
+
+5. To exit racket
+   > (exit)
+

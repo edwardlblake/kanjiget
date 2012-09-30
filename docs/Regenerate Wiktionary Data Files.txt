@@ -1,6 +1,17 @@
 Steps to regenerate the Wiktionary data files
 =============================================
 
+About the files
+---------------
+
+The Wiktionary data dump files are found at:
+  http://dumps.wikimedia.org/
+The Wiktionary data dump files are licensed under both
+the GNU Free Documentation License and the Creative Commons
+Attribution-Share-Alike 3.0 License.
+  http://dumps.wikimedia.org/legal.html
+
+
 Step 0, Required Tools
 ----------------------
 
@@ -60,8 +71,8 @@ Step 2, rename the old dat files
      wiktlkup.dat
 
 
-Step 3, Generate data files (in Windows)
-----------------------------------------
+Step 3, Generate data files (steps for Windows)
+-----------------------------------------------
 
 1. Open the command line
 
@@ -69,6 +80,10 @@ Step 3, Generate data files (in Windows)
 
 3. If you have installed Racket in Program Files then:
    SET PATH="C:\Program Files\Racket\"
+
+
+Step 4 continued, Generate files
+--------------------------------
 
 4. Type at the command line:
    > racket
@@ -93,3 +108,4 @@ Step 3, Generate data files (in Windows)
 
 8. To exit racket
    > (exit)
+
