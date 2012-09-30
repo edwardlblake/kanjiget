@@ -8,7 +8,8 @@
          racket/block
          "wiktionarydb.rkt"
          "wiktionarytemplates.rkt"
-         "stayontop.rkt")
+         "stayontop.rkt"
+         "constants-filenames.rkt")
 
 (provide open-wiktionary)
 
@@ -387,5 +388,9 @@
     (enabledisable-actions)
     (generate-wiktionary-page) ))
 
-(load-wikt-data-files "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+; Temporary below
+(load-wikt-data-files
+ (resolve-data-file-path CONST_FILE_WIKTDATA)
+ (resolve-data-file-path CONST_FILE_WIKTINDX)
+ (resolve-data-file-path CONST_FILE_WIKTLKUP))
 (open-wiktionary "高")

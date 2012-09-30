@@ -1,0 +1,95 @@
+Steps to regenerate the Wiktionary data files
+=============================================
+
+Step 0, Required Tools
+----------------------
+
+* Web browser to get files
+* bz2 decompressor such as bz2, or WinRAR on Windows
+* Racket at http://www.racket-lang.org/
+
+
+Step 1, Download the Wiktionary database backup dump
+----------------------------------------------------
+
+1. Navigate to http://dumps.wikimedia.org/
+
+2. click on "Database backup dumps", you should now be on a page
+   with the title: "Database dump progress"
+
+3. Search on this page for "enwiktionary" (for English Wiktionary)
+   and click on the latest one. You should now be on a page with 
+   the title: "enwiktionary dump progress on 201YMMDD"
+
+4. Download the "pages-articles" bz2 file from here.
+   The entry will look something like:
+
+  2012-09-20 22:04:53  done  Articles, templates, media/file
+                             descriptions, and primary meta-pages.
+
+       2012-09-20 22:04:51: enwiktionary (ID 19494) 3302572 pages
+       (683.9|3222983.7/sec all|curr), 3302572 revs (683.9|558.2/sec 
+       all|curr), 96.6%|96.6% prefetched (all|curr), ETA 2012-09-21 
+       04:08:40 [max 18231295]
+
+     enwiktionary-20120920-pages-articles.xml.bz2 338.8 MB
+
+5. Wait a bit for it finish downloading, this file isn't big like the
+   main Wikipedia site, but its still big.
+
+6. Extract the bz2 file to attain an xml file. If your bz2 file was
+   enwiktionary-20120920-pages-articles.xml.bz2  then you should get
+   enwiktionary-20120920-pages-articles.xml
+   Note: The bz2 file mentioned here is 338 MB which gets expanded
+         to 2 gigs (2,646 MB), just to mention for disk space
+         requirements.
+
+7. Place the xml file in the same directory as wiktionarydb.rkt
+
+
+Step 2, rename the old dat files
+------------------------------
+
+1. The data file generator in step 3 won't create new data files if 
+   existing data files in a nearby folder (specifically the parent
+   folder, adjacent "data" folder and "data" subfolder) are still 
+   around, so rename the old files:
+
+     wiktdata.dat
+     wiktindx.dat
+     wiktlkup.dat
+
+
+Step 3, Generate data files (in Windows)
+----------------------------------------
+
+1. Open the command line
+
+2. cd to the folder where wiktionarydb.rkt resides
+
+3. If you have installed Racket in Program Files then:
+   SET PATH="C:\Program Files\Racket\"
+
+4. Type at the command line:
+   > racket
+   You'll see something like this:
+
+   Welcome to Racket v5.3.
+   > _
+
+5. Issue two commands:
+
+  > (require "wiktionarydb.rkt")
+  > (create-wiktionary-data-file-if-needed
+     "enwiktionary-20120812-pages-articles.xml"
+     "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+
+6. A stream of "incl: ..." should appear, don't worry about the
+   funny characters (mojibake), most likely the code page of 
+   your command line box can't display the kanji characters.
+
+7. Wait a few minutes to complete, after this step everything is
+   done.
+
+8. To exit racket
+   > (exit)

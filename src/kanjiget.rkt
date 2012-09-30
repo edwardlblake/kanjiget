@@ -799,11 +799,17 @@
   (send frame show #t)
   (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
   (void)
-  (load-datafiles CONST_FILE_KANJIIDX0
-                  CONST_FILE_KANJIMTX
-                  CONST_FILE_KANJIRDC0)
+  
+  (load-datafiles
+   (resolve-data-file-path CONST_FILE_KANJIIDX0)
+   (resolve-data-file-path CONST_FILE_KANJIMTX)
+   (resolve-data-file-path CONST_FILE_KANJIRDC0))
+  
   (thread
    (lambda ()
-     (load-wikt-data-files CONST_FILE_WIKTDATA CONST_FILE_WIKTINDX CONST_FILE_WIKTLKUP)))
+     (load-wikt-data-files
+      (resolve-data-file-path CONST_FILE_WIKTDATA)
+      (resolve-data-file-path CONST_FILE_WIKTINDX)
+      (resolve-data-file-path CONST_FILE_WIKTLKUP))))
   (enabledisable-actions)
   )

@@ -8,7 +8,8 @@
          make-wiktionary-data-files)
 
 (require racket/list
-         racket/set)
+         racket/set
+         "constants-filenames.rkt")
 
 #|
 || "Database" lookup variables.
@@ -245,5 +246,10 @@
 || Shortcut function to using create-wiktionary-data-file-if-needed
 |#
 (define (make-wiktionary-data-files xmlfile)
-  (create-wiktionary-data-file-if-needed xmlfile "knjidxl0.dat" "wiktdata.dat" "wiktindx.dat" "wiktlkup.dat")
+  (create-wiktionary-data-file-if-needed 
+   xmlfile 
+   (resolve-data-file-path CONST_FILE_KANJIIDX0)
+   (resolve-data-file-path CONST_FILE_WIKTDATA)
+   (resolve-data-file-path CONST_FILE_WIKTINDX)
+   (resolve-data-file-path CONST_FILE_WIKTLKUP))
   )
