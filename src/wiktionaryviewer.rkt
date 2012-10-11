@@ -72,7 +72,7 @@
             [label "&Stay on Top"]
             [parent mnu.tools]
             [callback
-             (lambda (itm evt)
+             (λ (itm evt)
                (set! stn^ontop (not stn^ontop))
                (send itm check  stn^ontop)
                (if stn^ontop
@@ -174,7 +174,7 @@
       (string-append
        (substring txt 0 (car posn))
        ((hash-ref rewriteshash (regexp-replace* #rx"^ +| +$" (string-downcase (car args)) "")
-                  (lambda () (lambda (a) (format "[[Template:~a]]" (car args)))))
+                  (λ () (λ (a) (format "[[Template:~a]]" (car args)))))
         (cdr args))
        (substring txt (cdr posn)))
       )
@@ -225,11 +225,11 @@
                 (list (substring txt (+ (car posn) 2) (- (cdr posn) 2))) )
               (for/list ([posn lst]) 
                 (define wrd (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
-                (lambda (eb edt)
+                (λ (eb edt)
                   (if (wikt-has-definition? wrd)
                       (let ()
                         (send edt set-clickback eb (send edt last-position)
-                              (lambda (e s b) (open-wiktionary wrd) )
+                              (λ (e s b) (open-wiktionary wrd) )
                               (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
                         (send edt change-style sty-link eb 'end #f))
                       (send edt change-style sty-nolink eb 'end #f))))))
@@ -251,7 +251,7 @@
                     [(equal? (substring txt (car posn) (+ (car posn) 5)) "'''''") sty-italicbold]
                     [(equal? (substring txt (car posn) (+ (car posn) 3)) "'''") sty-bold]
                     [(equal? (substring txt (car posn) (+ (car posn) 2)) "''") sty-italic]))
-                (lambda (eb edt)
+                (λ (eb edt)
                   (send edt change-style tak eb 'end #f) ))))
     (parse-to-markup-tree 
      (parse-to-markup-tree 
@@ -324,10 +324,10 @@
                
                (define txtedt
                  (let loop ([listspec listspec]
-                            [last-listspec (append last-listspec (build-list 30 (lambda _ #f)))]
+                            [last-listspec (append last-listspec (build-list 30 (λ _ #f)))]
                             [i 0]
                             [edt edt]
-                            [addnl (lambda _ (set! addnewln #t))])
+                            [addnl (λ _ (set! addnewln #t))])
                    (if (and (pair? listspec) (pair? last-listspec))
                        (let ([lastone (not (pair? (cdr listspec)))]
                              [a (car listspec)]
@@ -335,7 +335,7 @@
                          (if (and (not lastone) (eq? a x))
                              (loop (cdr listspec) (cdr last-listspec) (add1 i)
                                    (vector-ref last-listeditors i)
-                                   (lambda _ (wikt-add-text (format "~n") (vector-ref last-listeditors i))))
+                                   (λ _ (wikt-add-text (format "~n") (vector-ref last-listeditors i))))
                              (let ()
                                (addnl)
                                (for ([j (in-range (add1 i) 30)])
@@ -353,7 +353,7 @@
                                (let ([newedt (make-subtext edt)])
                                  (vector-set! last-listeditors i newedt)
                                  (loop (cdr listspec) (cdr last-listspec) (add1 i) newedt
-                                       (lambda _ (wikt-add-text (format "~n") newedt))) ))))
+                                       (λ _ (wikt-add-text (format "~n") newedt))) ))))
                        edt )))
                (set! last-listspec listspec)
                (wikt-add-text listtext txtedt)
@@ -410,9 +410,19 @@
     (enabledisable-actions)
     (generate-wiktionary-page) ))
 
-; Temporary below
-(load-wikt-data-files
- (resolve-data-file-path CONST_FILE_WIKTDATA)
- (resolve-data-file-path CONST_FILE_WIKTINDX)
- (resolve-data-file-path CONST_FILE_WIKTLKUP))
-(open-wiktionary "高")
+
+#|
+|| Submodule main
+||
+|| Entry point when running wiktionaryviewer.rkt directly
+||
+|#
+(module+ main
+  ; Temporary below
+  (load-wikt-data-files
+   (resolve-data-file-path CONST_FILE_WIKTDATA)
+   (resolve-data-file-path CONST_FILE_WIKTINDX)
+   (resolve-data-file-path CONST_FILE_WIKTLKUP))
+  (open-wiktionary "高")
+  )
+

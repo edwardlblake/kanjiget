@@ -97,9 +97,9 @@
 ;;;
 (define (load-indexes FileIDX FileMTX)
   (call-with-input-file FileIDX
-    (lambda (fi)
+    (λ (fi)
       (call-with-input-file FileMTX
-        (lambda (fim)
+        (λ (fim)
           (set! kanjiinfo (make-hasheqv))
           (let*([vlen (* RECMATRIX_WIDTH RECMATRIX_HEIGHT)]
                 [bs (make-bytes (* 4 vlen))])
@@ -123,7 +123,7 @@
 ;;;
 (define (load-radicals FileRDC)
   (call-with-input-file FileRDC
-    (lambda (fi)
+    (λ (fi)
       (define signature    (read fi))
       (define file-list    (read fi))
       (define file-strokes (read fi))
@@ -158,13 +158,13 @@
 (define (create-indexes-if-needed FileIDX FileMTX kanjidic2-xml-path)
   (unless (file-exists? FileIDX)
     (call-with-output-file FileIDX
-      (lambda (fo)
+      (λ (fo)
         (call-with-output-file FileMTX
-          (lambda (fom)
+          (λ (fom)
             (define bs (make-bytes (* 4 RECMATRIX_WIDTH RECMATRIX_HEIGHT)))
             (define knji->vec (kanjiletter->vector100x100/session))
             (call-with-input-file kanjidic2-xml-path
-              (lambda (fi)
+              (λ (fi)
                 (define (pick-elem-cont z)
                   ((compose xml->xexpr first element-content) z))
                 (define (pick-elem-attr z at [df ""])
@@ -293,10 +293,10 @@
       (define radk-list (make-hasheqv))
       (define radk-bystroke (make-hasheqv '()))
       (call-with-output-file FileRDC
-        (lambda (fo)
+        (λ (fo)
           (for ([rkf rkflst])
             (call-with-input-file rkf
-              (lambda (fi)
+              (λ (fi)
                 (let ([fic (reencode-input-port fi "EUC-JP" #f)]
                       [rad #f])
                   (let loop ([ln (read-line fic 'any)])
@@ -326,7 +326,7 @@
          [drbt (new bitmap-dc% [bitmap rbt])]
          [mcpx0 (make-bytes (* 200 1 4))]
          )
-    (lambda (tbt)
+    (λ (tbt)
       (let ([rscl-left   #f]
             [rscl-right  #f]
             [rscl-top    #f]
@@ -429,7 +429,7 @@
   (send dkbt set-scale 1 1)
   (send dkbt set-text-foreground (make-object color% 0 0 0 1.0))
   (send dkbt set-font (make-object font% 200 'default 'normal 'normal #f 'default 100))
-  (lambda (ltr)
+  (λ (ltr)
     (let-values ([(tw th j0 j1) (send dkbt get-text-extent ltr)])
       (let ([v (- (/ 200 2) (/ tw 2)) ]
             [w (- (/ 200 2) (/ th 2)) ])
@@ -473,7 +473,7 @@
     (new canvas%
          [parent frx]
          [paint-callback
-          (lambda (canvas dc)
+          (λ (canvas dc)
             (send dc draw-bitmap rbt 0 0) )]
          [style '(border)]
          [vert-margin 10]	 
@@ -486,7 +486,7 @@
       (new canvas%
            [parent frx]
            [paint-callback
-            (lambda (canvas dc)
+            (λ (canvas dc)
               (send dc draw-bitmap ybt 0 0)
               )]
            [style '(border)]

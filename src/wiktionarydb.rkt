@@ -67,7 +67,7 @@
   (define z (first v))
   (define y (second v))
   (call-with-input-file wikt-data-file
-    (lambda (fd)
+    (λ (fd)
       (file-position fd z)
       (read-string y fd) )
     #:mode 'text))
@@ -81,7 +81,7 @@
     (set! wikt-data-file wiktDataFile)
     (set! wikt-index-hash
           (call-with-input-file wiktIndex
-            (lambda (fx)
+            (λ (fx)
               (define newhsh (make-hash))
               (let loop ([d (read fx)])
                 (if (eof-object? d)
@@ -92,7 +92,7 @@
                 ))))
     (set! wikt-lookup-hash
           (call-with-input-file wiktLookup
-            (lambda (fli)
+            (λ (fli)
               (read fli)))))
   )
 
@@ -152,7 +152,7 @@
           (values (cons c buf) munch-tagattrsvalue)))
     
     (call-with-input-file xmlfile
-      (lambda(fi)
+      (λ (fi)
         (for/fold ([buf '()]
                    [munch munch-content]) 
           ([c (in-input-port-chars fi)])
@@ -163,7 +163,7 @@
   
   (define allkanj
     (call-with-input-file kanjIDX
-      (lambda (fi)
+      (λ (fi)
         (let loop ([hsh (make-immutable-hash)]
                    [a (read fi)])
           (if (eof-object? a)
@@ -173,9 +173,9 @@
   
   (unless (or (file-exists? wiktDataFile) (file-exists? wiktIndex))
     (call-with-output-file wiktDataFile
-      (lambda (fo)
+      (λ (fo)
         (call-with-output-file wiktIndex
-          (lambda (fx)
+          (λ (fx)
             (define last-title "")
             (define hshlookup (make-hash))
             (define title "")
@@ -187,39 +187,39 @@
              #|
              || content
              |#
-             (lambda (a)
+             (λ (a)
                (capture a))
              
              #|
              || tag-open
              |#
-             (lambda (a) (void))
+             (λ (a) (void))
              
              #|
              || tag-head
              |#
-             (lambda (a)
+             (λ (a)
                (cond
                  [(equal? "page" a)
                   (set! text "")
                   (set! title "")]
                  [(equal? "text" a)
-                  (set! capture (lambda (a) (set! text a)))]
+                  (set! capture (λ (a) (set! text a)))]
                  [(equal? "title" a)
-                  (set! capture (lambda (a) (set! title a)))]
+                  (set! capture (λ (a) (set! title a)))]
                  [else
-                  (set! capture (lambda (a) (void)))] ))
+                  (set! capture (λ (a) (void)))] ))
              
              #|
              || tag-attr-name and tag-attr-value
              |#
-             (lambda (a) (void))
-             (lambda (a) (void))
+             (λ (a) (void))
+             (λ (a) (void))
              
              #|
              || tag-close
              |#
-             (lambda (a)
+             (λ (a)
                (unless (or (equal? title "") (equal? text "") (equal? last-title title))
                  (define d (string-ref title 0))
                  (set! last-title title)
@@ -251,7 +251,7 @@
                        (set! title "")
                        (set! text "")))) )))
             (call-with-output-file wiktLookup
-              (lambda (flo)
+              (λ (flo)
                 (write hshlookup flo)
                 (flush-output flo) )
               #:mode 'text

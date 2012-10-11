@@ -32,7 +32,7 @@
       [(wikt-templates-table * num classname (show-as fmt args argx) rst ...)
        (let ()
          (hash-set! templates classname
-                     (lambda (args)
+                     (λ (args)
                        (format fmt . argx)
                        ))
          (wikt-templates-table rst ...))]
@@ -40,7 +40,7 @@
       [(wikt-templates-table * num classname _ (show-as fmt args argx) rst ...)
        (let ()
          (hash-set! templates classname
-                     (lambda (args)
+                     (λ (args)
                        (format fmt . argx)
                        ))
          (wikt-templates-table rst ...))]

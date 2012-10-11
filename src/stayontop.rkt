@@ -32,7 +32,7 @@
   (case (system-type)
     [[windows]
      (get-ffi-obj "SetWindowPos" "user32" (_fun _pointer _int _int _int _int _int _int -> _int)
-                  (lambda () (void)))]
+                  (λ () (void)))]
     [else void]))
 (define WINAPI_HWND_TOPMOST  -1)
 (define WINAPI_HWND_NOTOPMOST -2)

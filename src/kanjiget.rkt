@@ -67,7 +67,7 @@
        [label "E&xit"]
        [parent mnu.file]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (exit 0)
           )]
        [shortcut #\Q]
@@ -103,7 +103,7 @@
        [label "Hide Entries without JP &Grade"]
        [parent mnu.view]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (set! stn^hidenograde (not stn^hidenograde))
           (send itm check  stn^hidenograde)
           (refresh-results)
@@ -116,7 +116,7 @@
        [label "Hide Entries without &JLPT"]
        [parent mnu.view]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (set! stn^hidenojlpt (not stn^hidenojlpt))
           (send itm check  stn^hidenojlpt)
           (refresh-results)
@@ -129,7 +129,7 @@
        [label "Hide Entries without Freq."]
        [parent mnu.view]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (set! stn^hidenofreq (not stn^hidenofreq))
           (send itm check  stn^hidenofreq)
           (refresh-results)
@@ -150,7 +150,7 @@
        [label (format "Slot ~a" (add1 a))]
        [parent mnu.view.manualradical]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (radicalcells-setcell! a (pick-radical-from-list frame))
           (refresh-radical-filter)
           (refresh-results)
@@ -174,7 +174,7 @@
        [label "&Stay on Top"]
        [parent mnu.tools]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (set! stn^ontop (not stn^ontop))
           (send itm check  stn^ontop)
           (if stn^ontop
@@ -192,7 +192,7 @@
        [label "&About"]
        [parent mnu.help]
        [callback
-        (lambda (itm evt)
+        (λ (itm evt)
           (void);(make-about-dialog frame)
           )]
        [help-string "Information about KanjiGet"]))
@@ -281,7 +281,7 @@
     (super-new 
      [parent parent]
      [paint-callback
-      (lambda (canvas dc)
+      (λ (canvas dc)
         (send dc draw-bitmap bt 1 1)
         (send dc draw-bitmap btg 1 1)
         )]
@@ -338,7 +338,7 @@
        [label STR_BTN_RESTARTOVER]
        [parent btnpane]
        [callback
-        (lambda(btn evt)
+        (λ (btn evt)
           (kanjidraw-clear)
           (send knjcanvas refresh)
           (void))]
@@ -405,7 +405,7 @@
        [label STR_BTN_SEARCH]
        [parent btnpane]
        [callback
-        (lambda(btn evt)
+        (λ (btn evt)
           (set! lastresults (do-kanjisearch btstrokenum
                                             (list-ref '(0 50.0 200.0 400.0)
                                                       (send strokescoringcombo get-selection)) bt))
@@ -480,25 +480,25 @@
               (vector-ref radicalcells idx)
               )])
     (if (equal? '() rl)
-        (set! viewradicalfilter (lambda (k) #t))
-        (let*([o (let*([kl (map (lambda (r)
+        (set! viewradicalfilter (λ (k) #t))
+        (let*([o (let*([kl (map (λ (r)
                                   (apply seteqv (cons r (hash-ref radk-list r)))) rl)]
                        [setop set-intersect])
                    (apply setop kl)
                    )])
-          (set! viewradicalfilter (lambda (k) (set-member? o k)))
+          (set! viewradicalfilter (λ (k) (set-member? o k)))
           )
         )
     )
   )
 
-(define viewradicalfilter (lambda (k) #t))
+(define viewradicalfilter (λ (k) #t))
 (define (make-btnfilterview-checkbox a)
   (new check-box%
        [label "[    ]  "]
        [parent pnlviewfilter]
        [callback
-        (lambda (chk evt)
+        (λ (chk evt)
           (when (and 
                  (equal? #f (vector-ref radicalcells a))
                  (equal? #t (send chk get-value)))
@@ -574,10 +574,10 @@
                  (send mytxt2 insert (knfi knfv) eb)
                  (send mytxt2 change-style sty2-normal eb 'end #f)))
              )
-           (define mytxt2deffmt (lambda (a) (format "\t~a~n" a)))
+           (define mytxt2deffmt (λ (a) (format "\t~a~n" a)))
            (mytxt2-append-dh-dd "Grade:" knf-grade mytxt2deffmt)
            (mytxt2-append-dh-dd "Stroke #:" knf-strokenum
-                                (lambda (a)
+                                (λ (a)
                                   (if ((length a) . > . 1)
                                       (format "\t~a ~a~n" (first a) 
                                               (cons "miscounts:" (rest a)))
@@ -626,7 +626,7 @@
        [choices '()]
        [parent rightsidepane]
        [callback
-        (lambda (lst evt)
+        (λ (lst evt)
           (case (send evt get-event-type)
             [[list-box]        (kanji-results-list-event-select lst evt)]
             [[list-box-dclick] (kanji-results-list-event-dclick lst evt)]
@@ -656,7 +656,7 @@
 
 (define (enabledisable-actions)
   (let ([enableradact (if (equal? cursel-radical #f) #f #t)])
-    (for-each (lambda (h) (send h enable enableradact))
+    (for-each (λ (h) (send h enable enableradact))
               (list btnpnlkanjiactions-addasrad
                     ;pnlkanjiactionslabel btnpnlkanjiactions-addrad1 btnpnlkanjiactions-addrad2 btnpnlkanjiactions-addrad3 btnpnlkanjiactions-addrad4
                     ))
@@ -677,7 +677,7 @@
        [label "Add as Radical"]
        [parent pnlkanjiactions]
        [callback
-        (lambda(btn evt)
+        (λ (btn evt)
           (define pmn
             (new popup-menu% 
                  ;[title title]
@@ -690,7 +690,7 @@
                  [label (format "Slot ~a" (add1 a))]
                  [parent pmn]
                  [callback
-                  (lambda(btn evt)
+                  (λ (btn evt)
                     (radicalcells-setcell! a cursel-radical)
                     )]
                  [help-string (format "Add to slot ~a" (add1 a))]))
@@ -708,7 +708,7 @@
        [label "Radicals of Kanji"]
        [parent pnlkanjiactions]
        [callback
-        (lambda(btn evt)
+        (λ (btn evt)
           (define pmn
             (new popup-menu% 
                  ))
@@ -717,7 +717,7 @@
                  [label (format "Slot ~a" (add1 a))]
                  [parent pmn]
                  [callback
-                  (lambda(btn evt)
+                  (λ (btn evt)
                     (radicalcells-setcell! a (pick-radical-from-kanji frame cursel-kanji))
                     )]
                  [help-string (format "Add to slot ~a" (add1 a))]))
@@ -735,7 +735,7 @@
        [label ">>"]
        [parent pnlkanjiactions]
        [callback
-        (lambda(btn evt)
+        (λ (btn evt)
           ;(send btnpnlkanjiactions-knjtxtbox set-value 
           ;      (format "~a~a" (send btnpnlkanjiactions-knjtxtbox get-value) cursel-kanji))
           (autocomplete-word cursel-kanji)
@@ -768,7 +768,7 @@
        [parent pnlkanjiactions]
        [label ""]
        [callback
-        (lambda (txt evt)
+        (λ (txt evt)
           (void);(autocomplete-word #f) ; maybe later
           )]
        [init-value ""]
@@ -780,9 +780,10 @@
        [label "Wiktionary"]
        [parent pnlkanjiactions]
        [callback
-        (lambda(btn evt)
-        (define txt (send btnpnlkanjiactions-knjtxtbox get-value))
-          (open-wiktionary txt)
+        (λ (btn evt)
+          (let ([txt (send btnpnlkanjiactions-knjtxtbox get-value)])
+            (open-wiktionary txt)
+            )
           )]
        [enabled #t]))
 
@@ -828,7 +829,7 @@
    (resolve-data-file-path CONST_FILE_KANJIRDC0))
   
   (thread
-   (lambda ()
+   (λ ()
      (load-wikt-data-files
       (resolve-data-file-path CONST_FILE_WIKTDATA)
       (resolve-data-file-path CONST_FILE_WIKTINDX)

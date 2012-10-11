@@ -44,10 +44,10 @@
        (build-path pd ".kanjikun"))]))
 
 (define (read-preferences)
-  (with-handlers ([exn:fail? (lambda (x) (make-hasheq))])
+  (with-handlers ([exn:fail? (λ (x) (make-hasheq))])
     (call-with-input-file* 
         (build-path (get-preference-folder) "preferences.txt")
-      (lambda (fi)
+      (λ (fi)
         (read fi)
         )
       #:mode 'text)))
@@ -60,10 +60,10 @@
           (begin 
             (make-directory fl) 
             fl))))
-  (with-handlers ([exn:fail? (lambda (x) (printf "Error: could not write preference file.~n"))])
+  (with-handlers ([exn:fail? (λ (x) (printf "Error: could not write preference file.~n"))])
     (call-with-output-file*
      (build-path (get-preference-folder/create) "preferences.txt")
-     (lambda (fo)
+     (λ (fo)
        (write nv fo)
        )
      #:mode 'text

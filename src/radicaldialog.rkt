@@ -47,7 +47,7 @@
                [label (format "~a" k)]
                [parent pl]
                [callback
-                (lambda (chk evt)
+                (λ (chk evt)
                   (set! rdk k)
                   (send frame show #f)
                   )]
