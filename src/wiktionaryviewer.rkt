@@ -35,6 +35,10 @@
 
 (provide open-wiktionary)
 
+#|
+   Opens a wiki viewer to a specific entry in the 
+   Wiktionary data file.
+|#
 (define (open-wiktionary wikttitle)
   (define STR_WIN_WIKTIONARYVIEWER "Wiktionary Viewer")
   
@@ -45,11 +49,17 @@
         str
         (format "~a..." (substring str 0 197))))
   
+  #|
+     Frame
+  |#
   (define frame (new frame%
                      [label (shrink-string-if-needed (format "~a - ~a" STR_WIN_WIKTIONARYVIEWER wikttitle))]
                      [width 600]
                      [height 400]))
   
+  #|
+     Menus
+  |#
   (define mnu
     (new menu-bar%
          [parent frame]))
@@ -86,12 +96,15 @@
       [else #f]))
   
   
+  #|
+     Controls on the frame.
+  |#
   (define mainpane
     (new horizontal-pane%
          [parent frame]
          [alignment '(right center)] ))
   
-  (define kanji-results-editcanvas%
+  (define wikiviewer-editcanvas%
     (class editor-canvas%
       (init parent)
       (super-new [parent parent]
@@ -109,9 +122,12 @@
     (void)
     )
   
-  (define mytxtconv2 (new kanji-results-editcanvas% [parent mainpane]))
+  (define mytxtconv2 (new wikiviewer-editcanvas% [parent mainpane]))
   (define mytxt2 (new text%))
   
+  #|
+     Styles used by the editor.
+  |#
   (define stl (send mytxt2 get-style-list))
   (define sty-normal (send stl find-or-create-style (send stl basic-style)
                            (let ([y (make-object style-delta%)])
@@ -167,6 +183,11 @@
                        (let ([y (make-object style-delta%)])
                          (send y set-size-mult 0.8) y )))
   
+  #|
+     Rewrites Wiki syntax curly containers to something else
+     by calling the appropriate function in rewriteshash.
+     See wiktionarytemplates.rkt for current curly rewrites.
+  |#
   (define (curlyxpansion txt rewriteshash)
     (define (curlyxpansion-rewrite txt posn)
       (define inside (substring txt (+ (car posn) 2) (- (cdr posn) 2)))
@@ -183,8 +204,11 @@
       (set! txt (curlyxpansion-rewrite txt (car (regexp-match-positions #rx"{{[^{}]+?}}" txt (car a))))) )
     txt)
   
+  #|
+     These variables contain the current title, source and filtered
+     source text of the current entry.
+  |#
   (define current-wikt-title wikttitle)
-  
   (define current-wikt-text-source (wikt-get-definition wikttitle))
   (define current-wikt-text
     (let ([txt current-wikt-text-source])
@@ -192,31 +216,36 @@
                      (get-wiktionary-templates))
       ))
   
-  (define (parse-to-markup-tree txt parse-info)
-    (if (or (pair? txt) (procedure? txt))
-        (if (pair? txt)
-            (for/fold ([alst '()]) ([a txt])
-              (define b (parse-to-markup-tree a parse-info))
-              (if (and (pair? b) (not (procedure? (car b))))
-                  (append alst b)
-                  (append alst (list b))))
-            txt)
-        (let-values ([(posns clofs msyms) (parse-info txt)])
-          (let walk ([posns posns]
-                     [clofs clofs]
-                     [msyms msyms]
-                     [start 0]
-                     [alst '()])
-            (if (pair? posns)
-                (let ([posn (car posns)]
-                      [clof (car clofs)]
-                      [msym (car msyms)])
-                  (walk (cdr posns) (cdr clofs) (cdr msyms) (cdr posn)
-                        `((,msym ,@clof)
-                          ,(substring txt start (car posn)) . ,alst)) )
-                (reverse (cons (substring txt start) alst)) )))))
-  
+  #|
+     Parse Wiki syntax into a markup tree.
+     It does this by parsing for bold and italic markup,
+     followed by parsing for Wiki style links.
+  |#
   (define (wiki-markup->tree txt)
+    (define (parse-to-markup-tree txt parse-info)
+      (if (or (pair? txt) (procedure? txt))
+          (if (pair? txt)
+              (for/fold ([alst '()]) ([a txt])
+                (define b (parse-to-markup-tree a parse-info))
+                (if (and (pair? b) (not (procedure? (car b))))
+                    (append alst b)
+                    (append alst (list b))))
+              txt)
+          (let-values ([(posns clofs msyms) (parse-info txt)])
+            (let walk ([posns posns]
+                       [clofs clofs]
+                       [msyms msyms]
+                       [start 0]
+                       [alst '()])
+              (if (pair? posns)
+                  (let ([posn (car posns)]
+                        [clof (car clofs)]
+                        [msym (car msyms)])
+                    (walk (cdr posns) (cdr clofs) (cdr msyms) (cdr posn)
+                          `((,msym ,@clof)
+                            ,(substring txt start (car posn)) . ,alst)) )
+                  (reverse (cons (substring txt start) alst)) )))))
+    
     (define (parse-wikt-links txt)
       (define lst 
         (regexp-match-positions* #rx"\\[\\[([^]]+)\\]\\]" txt))
@@ -233,7 +262,7 @@
                               (send (make-object style-delta%) set-delta-foreground (make-object color% 40 255 30)))
                         (send edt change-style sty-link eb 'end #f))
                       (send edt change-style sty-nolink eb 'end #f))))))
-    
+
     (define (parse-wikt-bolditalic txt)
       (define lst 
         (regexp-match-positions* #rx"'''''(.+?)'''''|'''(.+?)'''|''(.+?)''" txt))
@@ -259,6 +288,9 @@
       parse-wikt-bolditalic )
      parse-wikt-links) )
   
+  #|
+     Apply a markup tree to the editor.
+  |#
   (define (apply-markup-tree eb te edt)
     (if (pair? te)
         (if (procedure? (car te))
@@ -273,12 +305,19 @@
     
   (define (generate-wiktionary-page)
 
+    #|
+       Add text to the editor.
+    |#
     (define (wikt-add-text txt edt)
       (let ([eb (send edt last-position)]
             [te (wiki-markup->tree txt)])
         (apply-markup-tree eb te edt)
         ))
     
+    #|
+       State variables for the numbered list, unordered list, and indent
+       parsing
+    |#
     (define last-listspec '())
     (define last-listeditors (make-vector 30 #f))
     (define last-listincrements (make-vector 30))
@@ -311,7 +350,7 @@
       (if (> (string-length txt) 0)
           (case (string-ref txt 0)
             #|
-            || Numbered and bullet lists, and indentation
+               Numbered and bullet lists, and indentation
             |#
             [[#\: #\# #\*]
              (define tt
@@ -362,14 +401,14 @@
              ]
             
             #|
-            || Any other non-empty line of text
+               Any other non-empty line of text
             |#
             [else 
              (set! last-listincrements (make-vector 30))
              (wikt-add-text (format "~a~n" txt) edt) ])
           
           #|
-          || Empty line of text
+             Empty line of text
           |#
           (let ()
             (set! last-listincrements (make-vector 30))
@@ -412,10 +451,9 @@
 
 
 #|
-|| Submodule main
-||
-|| Entry point when running wiktionaryviewer.rkt directly
-||
+   Submodule main
+  
+   Entry point when running wiktionaryviewer.rkt directly
 |#
 (module+ main
   ; Temporary below

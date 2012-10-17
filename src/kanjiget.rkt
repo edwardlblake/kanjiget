@@ -816,6 +816,7 @@
                           (send y set-delta-foreground (make-object color% 30 40 30))
                           y
                           )))
+
 (let ()
   (send mytxtconv set-editor mytxt)
   (send mytxtconv2 set-editor mytxt2)

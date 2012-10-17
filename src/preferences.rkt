@@ -33,15 +33,15 @@
        (let-values (((a b c) (split-path ipd)))
          (let-values (((g h k) (split-path a)))
            (if (equal? h (string->path "Roaming"))
-               (build-path a "Kanjikun")
-               (build-path ipd "Kanjikun")
+               (build-path a "KanjiGet")
+               (build-path ipd "KanjiGet")
                ))))]
     [[macosx]
      (let ([pd (find-system-path 'pref-dir)])
-       (build-path pd "Kanjikun"))]
+       (build-path pd "KanjiGet"))]
     [else 
      (let ([pd (find-system-path 'home-dir)])
-       (build-path pd ".kanjikun"))]))
+       (build-path pd ".KanjiGet"))]))
 
 (define (read-preferences)
   (with-handlers ([exn:fail? (λ (x) (make-hasheq))])
