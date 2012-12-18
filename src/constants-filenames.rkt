@@ -1,4 +1,5 @@
 #lang racket/base
+(require racket/gui/base)
 
 #|
 
@@ -42,15 +43,37 @@
   (define b (build-path ".." a))
   (define c (build-path ".." "data" a))
   (define d (build-path "data" a))
-  (define ia (build-path (find-system-path 'init-file) a))
-  (define ib (build-path (find-system-path 'init-file) b))
-  (define ic (build-path (find-system-path 'init-file) c))
-  (define id (build-path (find-system-path 'init-file) d))
-  (define ra (build-path (find-system-path 'run-file) a))
-  (define rb (build-path (find-system-path 'run-file) b))
-  (define rc (build-path (find-system-path 'run-file) c))
-  (define rd (build-path (find-system-path 'run-file) d))
+  (define init-dir
+    (find-system-path 'init-dir))
+  (define exec-dir
+    (let-values ([(a b c) (split-path (find-system-path 'exec-file))]) a))
+  (define run-dir 
+    (let-values ([(a b c) (split-path (find-system-path 'run-file))]) a))
+  (define orig-dir
+    (find-system-path 'orig-dir))
+  (define ia (build-path init-dir a))
+  (define ib (build-path init-dir b))
+  (define ic (build-path init-dir c))
+  (define id (build-path init-dir d))
+  (define ea (build-path exec-dir a))
+  (define eb (build-path exec-dir b))
+  (define ec (build-path exec-dir c))
+  (define ed (build-path exec-dir d))
+  (define ra (build-path run-dir a))
+  (define rb (build-path run-dir b))
+  (define rc (build-path run-dir c))
+  (define rd (build-path run-dir d))
+  (define oa (build-path orig-dir a))
+  (define ob (build-path orig-dir b))
+  (define oc (build-path orig-dir c))
+  (define od (build-path orig-dir d))
   (define h (build-path (find-system-path 'home-dir) ".KanjiGetData" a))
+  
+  ; For debugging on Mac
+  ;(message-box "Init" (format "~s~n~s~n~s~n~s" ia ib ic id))
+  ;(message-box "Exec" (format "~s~n~s~n~s~n~s" ea eb ec ed))
+  ;(message-box "RunT" (format "~s~n~s~n~s~n~s" ra rb rc rd))
+  ;(message-box "Orig" (format "~s~n~s~n~s~n~s" oa ob oc od))
   (cond
     [(file-exists? a) a ]
     [(file-exists? b) b ]
@@ -60,10 +83,18 @@
     [(file-exists? ib) ib ]
     [(file-exists? ic) ic ]
     [(file-exists? id) id ]
+    [(file-exists? ea) ea ]
+    [(file-exists? eb) eb ]
+    [(file-exists? ec) ec ]
+    [(file-exists? ed) ed ]
     [(file-exists? ra) ra ]
     [(file-exists? rb) rb ]
     [(file-exists? rc) rc ]
     [(file-exists? rd) rd ]
+    [(file-exists? oa) oa ]
+    [(file-exists? ob) ob ]
+    [(file-exists? oc) oc ]
+    [(file-exists? od) od ]
     [(file-exists? h) h ]
     [else a]
     )

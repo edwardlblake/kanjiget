@@ -821,14 +821,16 @@
   (send mytxtconv set-editor mytxt)
   (send mytxtconv2 set-editor mytxt2)
   (send frame show #t)
-  (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
-  (void)
   
-  (load-datafiles
-   (resolve-data-file-path CONST_FILE_KANJIIDX0)
-   (resolve-data-file-path CONST_FILE_KANJIMTX)
-   (resolve-data-file-path CONST_FILE_KANJIRDC0))
-  
+  (with-handlers 
+      ([exn:fail? 
+        (λ (e) 
+          (new message% [parent frame] [label (format "Error: ~a" e)]))])
+    (load-datafiles
+     (resolve-data-file-path CONST_FILE_KANJIIDX0)
+     (resolve-data-file-path CONST_FILE_KANJIMTX)
+     (resolve-data-file-path CONST_FILE_KANJIRDC0)))
+    
   (thread
    (λ ()
      (load-wikt-data-files
@@ -836,4 +838,5 @@
       (resolve-data-file-path CONST_FILE_WIKTINDX)
       (resolve-data-file-path CONST_FILE_WIKTLKUP))))
   (enabledisable-actions)
+  (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
   )
