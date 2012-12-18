@@ -1,14 +1,25 @@
 How to build KanjiGet
 =====================
 
-KanjiGet is written in Racket, to build the application:
+KanjiGet is written in Racket which is a language with
+strong resembles to the Scheme programming language, to 
+build the application:
 
 1. Download the latest Racket from http://www.racket-lang.org/
 
-2. To (re-)generate the data files required to use the 
+2. Grab the source code for Kanjiget at:
+
+       http://github.com/edwardlblake/kanjiget/
+
+3. To rebuild the project in Windows, run the batch file:
+
+       win\make.bat
+
+   the resulting exe is created in win\out\
+
+4. To (re-)generate the data files required to use the 
    application see the notes in:
 
-       docs/Regenerate Kanji Data Files.txt
-       docs/Regenerate Wiktionary Data Files.txt
+       docs/building/Regenerate Kanji Data Files.txt
+       docs/building/Regenerate Wiktionary Data Files.txt
 
-3. (TODO)
