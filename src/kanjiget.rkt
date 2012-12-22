@@ -36,12 +36,9 @@
          "radicaldialog.rkt"
          "intoradicalsdialog.rkt"
          "constants-filenames.rkt"
-         "stayontop.rkt")
-
-(define STR_DRAW_KANJI_HERE "Draw Kanji Here")
-(define STR_BTN_RESTARTOVER "Restart Over")
-(define STR_BTN_SEARCH      "Search")
-(define STR_WIN_KANJIFINDER "KanjiGet")
+         "stayontop.rkt"
+         "app-labels-en.rkt"
+         "aboutdialog.rkt")
 
 (define stn^ontop    #t)
 
@@ -59,40 +56,40 @@
        [parent frame]))
 (define mnu.file
   (new menu%
-       [label "&File"]
+       [label STR_MENU_FILE]
        [parent mnu]
-       [help-string "File related options"]))
+       [help-string STR_MENU_FILE_HELPSTRING]))
 (define mnu.file.exit
   (new menu-item%
-       [label "E&xit"]
+       [label STR_MENU_FILE_EXIT]
        [parent mnu.file]
        [callback
         (λ (itm evt)
           (exit 0)
           )]
        [shortcut #\Q]
-       [help-string "Exit"]
+       [help-string STR_MENU_FILE_EXIT_HELPSTRING]
        [shortcut-prefix '(ctl)]))
 (define mnu.edit
   (new menu%
-       [label "Edit"]
+       [label STR_MENU_EDIT]
        [parent mnu]))
 
 (define mnu.edit.___
   (append-editor-operation-menu-items mnu.edit))
 (define mnu.view
   (new menu%
-       [label "View"]
+       [label STR_MENU_VIEW]
        [parent mnu]))
 (define mnu.tools
   (new menu%
-       [label "Tools"]
+       [label STR_MENU_TOOLS]
        [parent mnu]))
 (define mnu.help
   (new menu%
-       [label "&Help"]
+       [label STR_MENU_HELP]
        [parent mnu]
-       [help-string "Help related options"]))
+       [help-string STR_MENU_HELP_HELPSTRING]))
 
 (define stn^hidenograde #t)
 (define stn^hidenojlpt #t)
@@ -100,7 +97,7 @@
 
 (define mnu.view.hidenograde
   (new checkable-menu-item%
-       [label "Hide Entries without JP &Grade"]
+       [label STR_MENU_VIEW_HIDENOGRADE]
        [parent mnu.view]
        [callback
         (λ (itm evt)
@@ -108,12 +105,12 @@
           (send itm check  stn^hidenograde)
           (refresh-results)
           )]
-       [help-string "Set whether to hide entries that do not have a Grade set in Japan"]
+       [help-string STR_MENU_VIEW_HIDENOGRADE_HELPSTRING]
        [checked stn^hidenograde]
        ))
 (define mnu.view.hidenojlpt
   (new checkable-menu-item%
-       [label "Hide Entries without &JLPT"]
+       [label STR_MENU_VIEW_HIDENOJLPT]
        [parent mnu.view]
        [callback
         (λ (itm evt)
@@ -121,12 +118,12 @@
           (send itm check  stn^hidenojlpt)
           (refresh-results)
           )]
-       [help-string "Set whether to hide entries that are not part of a JLPT Level"]
+       [help-string STR_MENU_VIEW_HIDENOJLPT_HELPSTRING]
        [checked stn^hidenojlpt]
        ))
 (define mnu.view.hidenofreq
   (new checkable-menu-item%
-       [label "Hide Entries without Freq."]
+       [label STR_MENU_VIEW_HIDENOFREQ]
        [parent mnu.view]
        [callback
         (λ (itm evt)
@@ -134,20 +131,20 @@
           (send itm check  stn^hidenofreq)
           (refresh-results)
           )]
-       [help-string "Set whether to hide entries that do not have a Usage Frequency in Japan"]
+       [help-string STR_MENU_VIEW_HIDENOFREQ_HELPSTRING]
        [checked stn^hidenofreq]
        ))
 
 (define mnu.view.manualradical
   (new menu%
-       [label "Add Filter by Radical"]
+       [label STR_MENU_VIEW_ADDFILTERBYRADICAL]
        [parent mnu.view]
-       [help-string "Set whether to hide entries that do not have a Usage Frequency in Japan"]
+       [help-string STR_MENU_VIEW_ADDFILTERBYRADICAL_HELPSTRING]
        ))
 
 (define (add-manual-radical-slot a)
   (new menu-item%
-       [label (format "Slot ~a" (add1 a))]
+       [label (format STR_FORMAT_SLOT (add1 a))]
        [parent mnu.view.manualradical]
        [callback
         (λ (itm evt)
@@ -155,7 +152,7 @@
           (refresh-radical-filter)
           (refresh-results)
           )]
-       [help-string (format "Manually add radical to slot ~a" (add1 a))]
+       [help-string (format STR_FORMAT_SLOT_HELPSTRING (add1 a))]
        )
   )
 (define mnu.view.manualradical.slot1
@@ -171,7 +168,7 @@
   (case (system-type)
     [[windows]
      (new checkable-menu-item%
-       [label "&Stay on Top"]
+       [label STR_MENU_TOOLS_STAYONTOP]
        [parent mnu.tools]
        [callback
         (λ (itm evt)
@@ -181,7 +178,7 @@
               (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
               (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_NOTOPMOST 0 0 0 0 3))
           )]
-       [help-string "Set whether window stays on top"]
+       [help-string STR_MENU_TOOLS_STAYONTOP_HELPSTRING]
        [checked stn^ontop]
        )
      ]
@@ -189,13 +186,13 @@
 
 (define mnu.help.about
   (new menu-item%
-       [label "&About"]
+       [label STR_MENU_HELP_ABOUT]
        [parent mnu.help]
        [callback
         (λ (itm evt)
-          (void);(make-about-dialog frame)
+          (show-about-dialog frame)
           )]
-       [help-string "Information about KanjiGet"]))
+       [help-string STR_MENU_HELP_ABOUT_HELPSTRING]))
 
 
 (define mainpane
@@ -310,8 +307,13 @@
 
 (define strokescoringcombo
   (new choice%
-       [label "Stroke # wt:"]
-       [choices (list "None" "Low" "Medium" "High")]
+       [label STR_STROKENUMWT]
+       [choices
+        (list 
+         STR_STROKENUMWT_NONE
+         STR_STROKENUMWT_LOW
+         STR_STROKENUMWT_MEDIUM
+         STR_STROKENUMWT_HIGH)]
        [parent leftsidepane]
        ;[callback callback]
        [style '(horizontal-label)]
@@ -455,7 +457,6 @@
 (define pnlviewfilter
   (new horizontal-pane%
        [parent rightsidepane]
-       ;[label "Filter:"]
        [alignment '(left top)]
        [stretchable-height #f]
        )
@@ -463,9 +464,9 @@
 
 (define pnlviewfilterlabel
   (new message%
-       [label "Filter by Radicals:"]
-       [parent pnlviewfilter]	 
-       [stretchable-height #f]	 
+       [label STR_LABEL_FILTERBYRADICAL]
+       [parent pnlviewfilter]
+       [stretchable-height #f]
        [auto-resize #f]))
 
 (define (refresh-radical-filter)
@@ -575,16 +576,16 @@
                  (send mytxt2 change-style sty2-normal eb 'end #f)))
              )
            (define mytxt2deffmt (λ (a) (format "\t~a~n" a)))
-           (mytxt2-append-dh-dd "Grade:" knf-grade mytxt2deffmt)
-           (mytxt2-append-dh-dd "Stroke #:" knf-strokenum
+           (mytxt2-append-dh-dd STR_DESCTEXT_GRADE knf-grade mytxt2deffmt)
+           (mytxt2-append-dh-dd STR_DESCTEXT_STROKENUM knf-strokenum
                                 (λ (a)
                                   (if ((length a) . > . 1)
                                       (format "\t~a ~a~n" (first a) 
-                                              (cons "miscounts:" (rest a)))
+                                              (cons STR_DESCTEXT_MISCOUNTS (rest a)))
                                       (format "\t~a~n" (first a)))))
-           (mytxt2-append-dh-dd "Variants:"   knf-variant mytxt2deffmt)
-           (mytxt2-append-dh-dd "Usage Freq:" knf-freq    mytxt2deffmt)
-           (mytxt2-append-dh-dd "JLPT:"       knf-jlpt    mytxt2deffmt)
+           (mytxt2-append-dh-dd STR_DESCTEXT_VARIANTS   knf-variant mytxt2deffmt)
+           (mytxt2-append-dh-dd STR_DESCTEXT_USAGEFREQ  knf-freq    mytxt2deffmt)
+           (mytxt2-append-dh-dd STR_DESCTEXT_JLPT       knf-jlpt    mytxt2deffmt)
            )
           
           (block
@@ -602,10 +603,10 @@
                      (send mytxt2 insert (format "\t\t~a~n" w) eb)
                      (send mytxt2 change-style sty2-normal eb 'end #f)))))
              )
-           (mytxt2-append-dh-dl "Readings:" knf-readings)
-           (mytxt2-append-dh-dl "Meanings:" knf-meanings)
-           (mytxt2-append-dh-dl "Nanori:"   knf-nanori)
-           (mytxt2-append-dh-dl "Dictionary References:" knf-dicref)
+           (mytxt2-append-dh-dl STR_DESCTEXT_READINGS knf-readings)
+           (mytxt2-append-dh-dl STR_DESCTEXT_MEANINGS knf-meanings)
+           (mytxt2-append-dh-dl STR_DESCTEXT_NANORI   knf-nanori)
+           (mytxt2-append-dh-dl STR_DESCTEXT_DICTREFS knf-dicref)
            )
           
           (send mytxt  lock #t)
@@ -622,7 +623,7 @@
     )
   
   (new list-box%
-       [label #f];STR_WIN_KANJIRESULTS]
+       [label #f]
        [choices '()]
        [parent rightsidepane]
        [callback
@@ -641,7 +642,14 @@
        [horiz-margin 2]
        [stretchable-width #t]
        [stretchable-height #t]
-       [columns '("#" "Kanji" "Grade" "Readings" "Meanings" "Score")]
+       [columns 
+        (list
+         "#"
+         STR_RESULTSLIST_COLUMN_KANJI
+         STR_RESULTSLIST_COLUMN_GRADE
+         STR_RESULTSLIST_COLUMN_READINGS
+         STR_RESULTSLIST_COLUMN_MEANINGS
+         STR_RESULTSLIST_COLUMN_SCORE)]
        )
   )
   )
@@ -658,7 +666,6 @@
   (let ([enableradact (if (equal? cursel-radical #f) #f #t)])
     (for-each (λ (h) (send h enable enableradact))
               (list btnpnlkanjiactions-addasrad
-                    ;pnlkanjiactionslabel btnpnlkanjiactions-addrad1 btnpnlkanjiactions-addrad2 btnpnlkanjiactions-addrad3 btnpnlkanjiactions-addrad4
                     ))
     )
   )
@@ -674,7 +681,7 @@
 
 (define btnpnlkanjiactions-addasrad
   (new button%
-       [label "Add as Radical"]
+       [label STR_BTN_ADDASRADICAL]
        [parent pnlkanjiactions]
        [callback
         (λ (btn evt)
@@ -687,13 +694,13 @@
                  ))
           (define (make-addradical-menuitem a)
             (new menu-item%
-                 [label (format "Slot ~a" (add1 a))]
+                 [label (format STR_FORMAT_SLOT (add1 a))]
                  [parent pmn]
                  [callback
                   (λ (btn evt)
                     (radicalcells-setcell! a cursel-radical)
                     )]
-                 [help-string (format "Add to slot ~a" (add1 a))]))
+                 [help-string (format STR_FORMAT_ADDTOSLOT_HELPSTRING (add1 a))]))
           (make-addradical-menuitem 0)
           (make-addradical-menuitem 1)
           (make-addradical-menuitem 2)
@@ -705,7 +712,7 @@
 
 (define btnpnlkanjiactions-knj2rad
   (new button%
-       [label "Radicals of Kanji"]
+       [label STR_BTN_RADICALSOFKANJI]
        [parent pnlkanjiactions]
        [callback
         (λ (btn evt)
@@ -714,13 +721,13 @@
                  ))
           (define (make-addradical-menuitem a)
             (new menu-item%
-                 [label (format "Slot ~a" (add1 a))]
+                 [label (format STR_FORMAT_SLOT (add1 a))]
                  [parent pmn]
                  [callback
                   (λ (btn evt)
                     (radicalcells-setcell! a (pick-radical-from-kanji frame cursel-kanji))
                     )]
-                 [help-string (format "Add to slot ~a" (add1 a))]))
+                 [help-string (format STR_FORMAT_ADDTOSLOT_HELPSTRING (add1 a))]))
           (make-addradical-menuitem 0)
           (make-addradical-menuitem 1)
           (make-addradical-menuitem 2)
@@ -777,7 +784,7 @@
 
 (define btnpnlkanjiactions-lookwikt
   (new button%
-       [label "Wiktionary"]
+       [label STR_BTN_WIKTIONARY]
        [parent pnlkanjiactions]
        [callback
         (λ (btn evt)

@@ -24,7 +24,8 @@
 
 (require racket/class
          racket/gui/base
-         "kanjidb.rkt")
+         "kanjidb.rkt"
+         "app-labels-en.rkt")
 
 (provide pick-radical-from-kanji)
 
@@ -33,11 +34,11 @@
         [knjrads (make-hasheqv '())]
         [frame (new dialog%
                     [parent parentwin]
-                    [label "Select Radical"]
+                    [label STR_LABEL_SELECTRADICALS]
                     [width 50]
                     [height 50])]
         [lbl (new message%
-                  [label (format "Radicals for ~a" knji)]
+                  [label (format STR_FORMAT_RADICALSFOR knji)]
                   [parent frame]	 
                   [stretchable-height #f]	 
                   [auto-resize #f])])

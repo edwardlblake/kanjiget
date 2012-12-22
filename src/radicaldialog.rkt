@@ -25,7 +25,8 @@
 (require racket/class
          racket/gui/base
          racket/set
-         "kanjidb.rkt")
+         "kanjidb.rkt"
+         "app-labels-en.rkt")
 
 (provide pick-radical-from-list)
 
@@ -33,7 +34,7 @@
   (let ([rdk #f]
         [frame (new dialog%
                     [parent parentwin]
-                    [label "Select Radical"]
+                    [label STR_WIN_SELECTRADICAL]
                     [width 800]
                     [height 300])])
     

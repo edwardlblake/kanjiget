@@ -57,7 +57,7 @@ Section "Uninstall"
 	Delete $INSTDIR\Uninstall.exe  
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}-${APP_VERSION}"
 	
-	Delete "$DESKTOP\Kanjiget.lnk"
+	Delete "$DESKTOP\${APP_NAME}.lnk"
 	Delete "$SMPROGRAMS\${APP_NAME}\*.*"
 	RmDir  "$SMPROGRAMS\${APP_NAME}"
 SectionEnd

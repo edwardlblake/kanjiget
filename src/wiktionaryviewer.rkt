@@ -32,7 +32,8 @@
          "wiktionarydb.rkt"
          "wiktionarytemplates.rkt"
          "stayontop.rkt"
-         "constants-filenames.rkt")
+         "constants-filenames.rkt"
+         "app-labels-en.rkt")
 
 (provide open-wiktionary)
 
@@ -41,8 +42,6 @@
    Wiktionary data file.
 |#
 (define (open-wiktionary wikttitle)
-  (define STR_WIN_WIKTIONARYVIEWER "Wiktionary Viewer")
-  
   (define stn^ontop    #t)
   
   (define (shrink-string-if-needed str)
@@ -66,21 +65,21 @@
          [parent frame]))
   (define mnu.edit
     (new menu%
-         [label "Edit"]
+         [label STR_MENU_EDIT]
          [parent mnu]))
   
   (define mnu.edit.___
     (append-editor-operation-menu-items mnu.edit))
   (define mnu.tools
     (new menu%
-         [label "Tools"]
+         [label STR_MENU_TOOLS]
          [parent mnu]))
   
   (define mnu.tools.stayontop
     (case (system-type)
       [[windows]
        (new checkable-menu-item%
-            [label "&Stay on Top"]
+            [label STR_MENU_TOOLS_STAYONTOP]
             [parent mnu.tools]
             [callback
              (λ (itm evt)
@@ -90,7 +89,7 @@
                    (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
                    (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_NOTOPMOST 0 0 0 0 3))
                )]
-            [help-string "Set whether window stays on top"]
+            [help-string STR_MENU_TOOLS_STAYONTOP_HELPSTRING]
             [checked stn^ontop]
             )
        ]
