@@ -24,7 +24,6 @@
 
 (require racket/class
          racket/gui/base
-         racket/list
          racket/port
          racket/set
          xml
@@ -85,7 +84,7 @@
                        (unsafe-fl+ sum (unsafe-fl* e0 e1)))
                      (car p)) )]
         [lst (for/list ([zc lsz])
-               (let ([zd (- stroke (first (UDT-kanji-info-strokenum (hash-ref kanjiinfo (cdr zc)))))])
+               (let ([zd (- stroke (car (UDT-kanji-info-strokenum (hash-ref kanjiinfo (cdr zc)))))])
                  (cons (+ (car zc) (/->0 strokefactor zd))
                        (cdr zc)) ))])
     (reverse (sort lst < #:key car #:cache-keys? #t)) ))
@@ -109,9 +108,9 @@
                         '()
                         (begin
                           (read-bytes! bs fim)
-                          (hash-set! kanjiinfo (string-ref (first u) 0)
+                          (hash-set! kanjiinfo (string-ref (car u) 0)
                                      (apply UDT-kanji-info u))
-                          (cons (cons (string-ref (first u) 0)
+                          (cons (cons (string-ref (car u) 0)
                                       (for/flvector ([i (in-range 0 vlen)])
                                         (floating-point-bytes->real bs #t (* i 4) (+ 4 (* i 4)))))
                                 (loop (read fi))) )))) ))))))
@@ -166,7 +165,7 @@
             (call-with-input-file kanjidic2-xml-path
               (λ (fi)
                 (define (pick-elem-cont z)
-                  ((compose xml->xexpr first element-content) z))
+                  ((compose xml->xexpr car element-content) z))
                 (define (pick-elem-attr z at [df ""])
                   (let ([ret df])
                     (for ([zi (element-attributes z)])
@@ -305,7 +304,7 @@
                         [[#\#] (void)]
                         [[#\$]
                          (set! rad (string-ref ln 2))
-                         (let ([strk (string->number (second (regexp-match "\\$ . ([0-9]+)" ln)))])
+                         (let ([strk (string->number (cadr (regexp-match "\\$ . ([0-9]+)" ln)))])
                            (hash-set! radk-bystroke strk (set-add (hash-ref radk-bystroke strk (seteqv)) rad)))
                          ]
                         
