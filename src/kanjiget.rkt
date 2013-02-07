@@ -25,7 +25,6 @@
 (require racket/class
          racket/gui/base
          racket/list
-         racket/string
          racket/dict
          racket/set
          racket/block
@@ -357,9 +356,9 @@
 
 (define (refresh-results)
   (define (cmaify l)
-    (string-append* (add-between l ", ")))
+    (apply string-append (add-between l ", ")))
   (define (cmaify2 l)
-    (string-append* (add-between l " / ")))
+    (apply string-append (add-between l " / ")))
   (let*([kanjilst  lastresults]
         [kanjilst1 (for/list([i (in-range 0 (length kanjilst))]
                              [e kanjilst]
@@ -580,9 +579,9 @@
            (mytxt2-append-dh-dd STR_DESCTEXT_STROKENUM knf-strokenum
                                 (λ (a)
                                   (if ((length a) . > . 1)
-                                      (format "\t~a ~a~n" (first a) 
-                                              (cons STR_DESCTEXT_MISCOUNTS (rest a)))
-                                      (format "\t~a~n" (first a)))))
+                                      (format "\t~a ~a~n" (car a) 
+                                              (cons STR_DESCTEXT_MISCOUNTS (cdr a)))
+                                      (format "\t~a~n" (car a)))))
            (mytxt2-append-dh-dd STR_DESCTEXT_VARIANTS   knf-variant mytxt2deffmt)
            (mytxt2-append-dh-dd STR_DESCTEXT_USAGEFREQ  knf-freq    mytxt2deffmt)
            (mytxt2-append-dh-dd STR_DESCTEXT_JLPT       knf-jlpt    mytxt2deffmt)
@@ -596,9 +595,9 @@
                  (send mytxt2 change-style sty2-normal eb 'end #f))
                (for ([(k v) (in-dict knfl)])
                  (let ([eb (send mytxt2 last-position)])
-                   (send mytxt2 insert (format "\t~a\t~a~n" k (first v)) eb)
+                   (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
                    (send mytxt2 change-style sty2-normal eb 'end #f))
-                 (for ([w (rest v)])
+                 (for ([w (cdr v)])
                    (let ([eb (send mytxt2 last-position)])
                      (send mytxt2 insert (format "\t\t~a~n" w) eb)
                      (send mytxt2 change-style sty2-normal eb 'end #f)))))

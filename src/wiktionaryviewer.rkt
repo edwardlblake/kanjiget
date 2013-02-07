@@ -26,9 +26,6 @@
          racket/gui/base
          racket/match
          (for-syntax racket/match/parse) ; workaround for raco exe/distribute
-         racket/string
-         racket/dict
-         racket/block
          "wiktionarydb.rkt"
          "wiktionarytemplates.rkt"
          "stayontop.rkt"

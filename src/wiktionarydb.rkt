@@ -29,8 +29,7 @@
          create-wiktionary-data-file-if-needed
          make-wiktionary-data-files)
 
-(require racket/list
-         racket/set
+(require racket/set
          "constants-filenames.rkt")
 
 #|
@@ -64,8 +63,8 @@
 |#
 (define (wikt-get-definition wrd)
   (define v (hash-ref wikt-index-hash wrd))
-  (define z (first v))
-  (define y (second v))
+  (define z (car  v))
+  (define y (cadr v))
   (call-with-input-file wikt-data-file
     (λ (fd)
       (file-position fd z)
@@ -87,7 +86,7 @@
                 (if (eof-object? d)
                     newhsh
                     (let ()
-                      (hash-set! newhsh (first d) (list (second d) (third d)))
+                      (hash-set! newhsh (car d) (list (cadr d) (caddr d)))
                       (loop (read fx))))
                 ))))
     (set! wikt-lookup-hash
@@ -168,7 +167,7 @@
                    [a (read fi)])
           (if (eof-object? a)
               hsh
-              (loop (hash-set hsh (string-ref (first a) 0) #t) (read fi)))))
+              (loop (hash-set hsh (string-ref (car a) 0) #t) (read fi)))))
       #:mode 'text) )
   
   (unless (or (file-exists? wiktDataFile) (file-exists? wiktIndex))
