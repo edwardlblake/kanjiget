@@ -24,7 +24,8 @@
 
 (require racket/class
          racket/gui/base
-         racket/list
+         (only-in racket/list add-between)
+         srfi/1
          racket/dict
          racket/set
          racket/block
