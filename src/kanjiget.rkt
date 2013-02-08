@@ -789,7 +789,9 @@
        [callback
         (λ (btn evt)
           (let ([txt (send btnpnlkanjiactions-knjtxtbox get-value)])
-            (open-wiktionary txt)
+            (with-handlers ([exn:fail? (λ _ (message-box "Definitions" "No entry found!"))])
+              (open-wiktionary txt)
+              )
             )
           )]
        [enabled #t]))
