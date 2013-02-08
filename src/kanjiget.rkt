@@ -22,13 +22,11 @@
 
 |#
 
-(require racket/class
-         racket/gui/base
+(require srfi/1
+         (only-in racket/class new send make-object class init super-new define/override this super)
+         (only-in racket/gui/base frame% menu-bar% menu% menu-item% append-editor-operation-menu-items checkable-menu-item% horizontal-pane% vertical-pane% make-bitmap bitmap-dc% color% canvas% choice% button% editor-canvas% message% check-box% list-box% view-control-font normal-control-font popup-menu% text-field% message-box text% style-delta%)
          (only-in racket/list add-between)
-         srfi/1
          racket/dict
-         racket/set
-         racket/block
          "kanjidb.rkt"
          "wiktionarydb.rkt"
          "wiktionaryviewer.rkt"
@@ -483,14 +481,10 @@
     (if (equal? '() rl)
         (set! viewradicalfilter (λ (k) #t))
         (let*([o (let*([kl (map (λ (r)
-                                  (apply seteqv (cons r (hash-ref radk-list r)))) rl)]
-                       [setop set-intersect])
-                   (apply setop kl)
-                   )])
-          (set! viewradicalfilter (λ (k) (set-member? o k)))
-          )
-        )
-    )
+                                  (delete-duplicates (cons r (hash-ref radk-list r)) eqv?)) rl)]
+                       [setop lset-intersection])
+                   (apply setop eqv? kl))])
+          (set! viewradicalfilter (λ (k) (memv k o))))))
   )
 
 (define viewradicalfilter (λ (k) #t))
@@ -508,15 +502,7 @@
           (refresh-radical-filter)
           (refresh-results)
           )]
-       ;[style style]
        [value #f]
-       ;[font font]
-       ;[enabled enabled]
-       ;[vert-margin vert-margin]
-       ;[horiz-margin horiz-margin]
-       ;[min-width min-width]
-       ;[min-height min-height]
-       ;[stretchable-width stretchable-width]
        [stretchable-height #f]))
 (define btnfilterview-check1
   (make-btnfilterview-checkbox 0))
@@ -528,130 +514,130 @@
   (make-btnfilterview-checkbox 3))
 
 (define kanji-results-list
-  (block
-  (define (kanji-results-list-event-select lst evt)
-    (let ([sel (send lst get-selection)])
-      (unless (equal? #f sel)
-        (let*([ltr (send lst get-data sel)]
-              [knfl (hash-ref kanjiinfo (string-ref ltr 0))]
-              [knf-grade     (UDT-kanji-info-grade knfl)]
-              [knf-strokenum (UDT-kanji-info-strokenum knfl)]
-              [knf-variant   (UDT-kanji-info-variant knfl)]
-              [knf-freq      (UDT-kanji-info-freq knfl)]
-              [knf-jlpt      (UDT-kanji-info-jlpt knfl)]
-              [knf-readings  (UDT-kanji-info-readings knfl)]
-              [knf-meanings  (UDT-kanji-info-meanings knfl)]
-              [knf-nanori    (UDT-kanji-info-nanori knfl)]
-              [knf-dicref    (UDT-kanji-info-dicref knfl)])
-          (set! cursel-kanji (string-ref ltr 0))
-          (cond
-            [(> (length (hash-ref radk-list (string-ref ltr 0) '())) 0)
-             (set! cursel-radical (string-ref ltr 0))
-             (enabledisable-actions)
-             ]
-            [else
-             (set! cursel-radical #f)
-             (enabledisable-actions)
-             ])
-          
-          (send mytxt  lock #f)
-          (send mytxt2 lock #f)
-          
-          (send mytxt select-all)
-          (send mytxt clear)
-          (let ([eb (send mytxt last-position)])
-            (send mytxt insert ltr eb)
-            (send mytxt change-style sty-kanji eb 'end #f))
-          (send mytxt2 select-all)
-          (send mytxt2 clear)
-          
-          (block
-           (define (mytxt2-append-dh-dd kttl knfv knfi)
-             (unless (equal? #f knfv)
-               (let ([eb (send mytxt2 last-position)])
-                 (send mytxt2 insert (format kttl) eb)
-                 (send mytxt2 change-style sty2-normal eb 'end #f))
-               (let ([eb (send mytxt2 last-position)])
-                 (send mytxt2 insert (knfi knfv) eb)
-                 (send mytxt2 change-style sty2-normal eb 'end #f)))
-             )
-           (define mytxt2deffmt (λ (a) (format "\t~a~n" a)))
-           (mytxt2-append-dh-dd STR_DESCTEXT_GRADE knf-grade mytxt2deffmt)
-           (mytxt2-append-dh-dd STR_DESCTEXT_STROKENUM knf-strokenum
-                                (λ (a)
-                                  (if ((length a) . > . 1)
-                                      (format "\t~a ~a~n" (car a) 
-                                              (cons STR_DESCTEXT_MISCOUNTS (cdr a)))
-                                      (format "\t~a~n" (car a)))))
-           (mytxt2-append-dh-dd STR_DESCTEXT_VARIANTS   knf-variant mytxt2deffmt)
-           (mytxt2-append-dh-dd STR_DESCTEXT_USAGEFREQ  knf-freq    mytxt2deffmt)
-           (mytxt2-append-dh-dd STR_DESCTEXT_JLPT       knf-jlpt    mytxt2deffmt)
-           )
-          
-          (block
-           (define (mytxt2-append-dh-dl kttl knfl)
-             (unless (or (equal? #f knfl) ((dict-count knfl) . < . 1))
-               (let ([eb (send mytxt2 last-position)])
-                 (send mytxt2 insert (format "~a~n" kttl) eb)
-                 (send mytxt2 change-style sty2-normal eb 'end #f))
-               (for ([(k v) (in-dict knfl)])
-                 (let ([eb (send mytxt2 last-position)])
-                   (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
-                   (send mytxt2 change-style sty2-normal eb 'end #f))
-                 (for ([w (cdr v)])
-                   (let ([eb (send mytxt2 last-position)])
-                     (send mytxt2 insert (format "\t\t~a~n" w) eb)
-                     (send mytxt2 change-style sty2-normal eb 'end #f)))))
-             )
-           (mytxt2-append-dh-dl STR_DESCTEXT_READINGS knf-readings)
-           (mytxt2-append-dh-dl STR_DESCTEXT_MEANINGS knf-meanings)
-           (mytxt2-append-dh-dl STR_DESCTEXT_NANORI   knf-nanori)
-           (mytxt2-append-dh-dl STR_DESCTEXT_DICTREFS knf-dicref)
-           )
-          
-          (send mytxt  lock #t)
-          (send mytxt  set-position 0 'same #f #t 'default)
-          (send mytxt2 lock #t)
-          (send mytxt2 set-position 0 'same #f #t 'default)
-          )))
+  (let ()
+    (define (kanji-results-list-event-select lst evt)
+      (let ([sel (send lst get-selection)])
+        (unless (equal? #f sel)
+          (let*([ltr (send lst get-data sel)]
+                [knfl (hash-ref kanjiinfo (string-ref ltr 0))]
+                [knf-grade     (UDT-kanji-info-grade knfl)]
+                [knf-strokenum (UDT-kanji-info-strokenum knfl)]
+                [knf-variant   (UDT-kanji-info-variant knfl)]
+                [knf-freq      (UDT-kanji-info-freq knfl)]
+                [knf-jlpt      (UDT-kanji-info-jlpt knfl)]
+                [knf-readings  (UDT-kanji-info-readings knfl)]
+                [knf-meanings  (UDT-kanji-info-meanings knfl)]
+                [knf-nanori    (UDT-kanji-info-nanori knfl)]
+                [knf-dicref    (UDT-kanji-info-dicref knfl)])
+            (set! cursel-kanji (string-ref ltr 0))
+            (cond
+              [(> (length (hash-ref radk-list (string-ref ltr 0) '())) 0)
+               (set! cursel-radical (string-ref ltr 0))
+               (enabledisable-actions)
+               ]
+              [else
+               (set! cursel-radical #f)
+               (enabledisable-actions)
+               ])
+            
+            (send mytxt  lock #f)
+            (send mytxt2 lock #f)
+            
+            (send mytxt select-all)
+            (send mytxt clear)
+            (let ([eb (send mytxt last-position)])
+              (send mytxt insert ltr eb)
+              (send mytxt change-style sty-kanji eb 'end #f))
+            (send mytxt2 select-all)
+            (send mytxt2 clear)
+            
+            (let ()
+              (define (mytxt2-append-dh-dd kttl knfv knfi)
+                (unless (equal? #f knfv)
+                  (let ([eb (send mytxt2 last-position)])
+                    (send mytxt2 insert (format kttl) eb)
+                    (send mytxt2 change-style sty2-normal eb 'end #f))
+                  (let ([eb (send mytxt2 last-position)])
+                    (send mytxt2 insert (knfi knfv) eb)
+                    (send mytxt2 change-style sty2-normal eb 'end #f)))
+                )
+              (define mytxt2deffmt (λ (a) (format "\t~a~n" a)))
+              (mytxt2-append-dh-dd STR_DESCTEXT_GRADE knf-grade mytxt2deffmt)
+              (mytxt2-append-dh-dd STR_DESCTEXT_STROKENUM knf-strokenum
+                                   (λ (a)
+                                     (if ((length a) . > . 1)
+                                         (format "\t~a ~a~n" (car a) 
+                                                 (cons STR_DESCTEXT_MISCOUNTS (cdr a)))
+                                         (format "\t~a~n" (car a)))))
+              (mytxt2-append-dh-dd STR_DESCTEXT_VARIANTS   knf-variant mytxt2deffmt)
+              (mytxt2-append-dh-dd STR_DESCTEXT_USAGEFREQ  knf-freq    mytxt2deffmt)
+              (mytxt2-append-dh-dd STR_DESCTEXT_JLPT       knf-jlpt    mytxt2deffmt)
+              )
+            
+            (let ()
+              (define (mytxt2-append-dh-dl kttl knfl)
+                (unless (or (equal? #f knfl) ((dict-count knfl) . < . 1))
+                  (let ([eb (send mytxt2 last-position)])
+                    (send mytxt2 insert (format "~a~n" kttl) eb)
+                    (send mytxt2 change-style sty2-normal eb 'end #f))
+                  (for ([(k v) (in-dict knfl)])
+                    (let ([eb (send mytxt2 last-position)])
+                      (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
+                      (send mytxt2 change-style sty2-normal eb 'end #f))
+                    (for ([w (cdr v)])
+                      (let ([eb (send mytxt2 last-position)])
+                        (send mytxt2 insert (format "\t\t~a~n" w) eb)
+                        (send mytxt2 change-style sty2-normal eb 'end #f)))))
+                )
+              (mytxt2-append-dh-dl STR_DESCTEXT_READINGS knf-readings)
+              (mytxt2-append-dh-dl STR_DESCTEXT_MEANINGS knf-meanings)
+              (mytxt2-append-dh-dl STR_DESCTEXT_NANORI   knf-nanori)
+              (mytxt2-append-dh-dl STR_DESCTEXT_DICTREFS knf-dicref)
+              )
+            
+            (send mytxt  lock #t)
+            (send mytxt  set-position 0 'same #f #t 'default)
+            (send mytxt2 lock #t)
+            (send mytxt2 set-position 0 'same #f #t 'default)
+            )))
+      )
+    (define (kanji-results-list-event-dclick lst evt)
+      (printf "(TODO) Dclick")
+      )
+    (define (kanji-results-list-event-colsort lst evt)
+      (printf "(TODO) Column sort?")
+      )
+    
+    (new list-box%
+         [label #f]
+         [choices '()]
+         [parent rightsidepane]
+         [callback
+          (λ (lst evt)
+            (case (send evt get-event-type)
+              [[list-box]        (kanji-results-list-event-select lst evt)]
+              [[list-box-dclick] (kanji-results-list-event-dclick lst evt)]
+              [[list-box-column] (kanji-results-list-event-colsort lst evt)]
+              ))]
+         [style '(single vertical-label column-headers)]
+         [selection #f]
+         [font view-control-font]
+         [label-font normal-control-font]
+         [enabled #t]
+         [vert-margin 2]
+         [horiz-margin 2]
+         [stretchable-width #t]
+         [stretchable-height #t]
+         [columns 
+          (list
+           "#"
+           STR_RESULTSLIST_COLUMN_KANJI
+           STR_RESULTSLIST_COLUMN_GRADE
+           STR_RESULTSLIST_COLUMN_READINGS
+           STR_RESULTSLIST_COLUMN_MEANINGS
+           STR_RESULTSLIST_COLUMN_SCORE)]
+         )
     )
-  (define (kanji-results-list-event-dclick lst evt)
-    (printf "(TODO) Dclick")
-    )
-  (define (kanji-results-list-event-colsort lst evt)
-    (printf "(TODO) Column sort?")
-    )
-  
-  (new list-box%
-       [label #f]
-       [choices '()]
-       [parent rightsidepane]
-       [callback
-        (λ (lst evt)
-          (case (send evt get-event-type)
-            [[list-box]        (kanji-results-list-event-select lst evt)]
-            [[list-box-dclick] (kanji-results-list-event-dclick lst evt)]
-            [[list-box-column] (kanji-results-list-event-colsort lst evt)]
-            ))]
-       [style '(single vertical-label column-headers)]
-       [selection #f]
-       [font view-control-font]
-       [label-font normal-control-font]
-       [enabled #t]
-       [vert-margin 2]
-       [horiz-margin 2]
-       [stretchable-width #t]
-       [stretchable-height #t]
-       [columns 
-        (list
-         "#"
-         STR_RESULTSLIST_COLUMN_KANJI
-         STR_RESULTSLIST_COLUMN_GRADE
-         STR_RESULTSLIST_COLUMN_READINGS
-         STR_RESULTSLIST_COLUMN_MEANINGS
-         STR_RESULTSLIST_COLUMN_SCORE)]
-       )
-  )
   )
 
 (define pnlkanjiactions ; add radical

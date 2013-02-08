@@ -22,9 +22,8 @@
 
 |#
 
-(require racket/class
-         racket/gui/base
-         racket/set
+(require (only-in racket/class new send)
+         (only-in racket/gui/base dialog% horizontal-pane% check-box%)
          "kanjidb.rkt"
          "app-labels-en.rkt")
 
@@ -40,7 +39,7 @@
     
     (let ([pl (new horizontal-pane% [parent frame] [alignment '(left top)])])
       (for ([(n st) (in-hash radk-bystroke)])
-        (for ([k (in-set st)]
+        (for ([k (in-list st)]
               [idx (in-range 0 (hash-count radk-list))])
           (when (= (modulo idx 25) 0)
             (set! pl (new horizontal-pane% [parent frame] [alignment '(left top)])))

@@ -29,7 +29,7 @@
          create-wiktionary-data-file-if-needed
          make-wiktionary-data-files)
 
-(require racket/set
+(require srfi/1
          "constants-filenames.rkt")
 
 #|
@@ -44,11 +44,9 @@
 ||   Get a word list from a word
 |#
 (define (wikt-wordlist-from-word wrd)
-  (set->list
-   (apply set-intersect 
-          (for/list ([c (string->list wrd)]) 
-            (let ([l (hash-ref wikt-lookup-hash c '())]) 
-              (list->set l))))))
+  (apply lset-intersection equal?
+         (for/list ([c (string->list wrd)]) 
+           (hash-ref wikt-lookup-hash c '()))))
 
 #|
 || wikt-has-definition?

@@ -22,13 +22,14 @@
 
 |#
 
-(require racket/class
-         racket/gui/base
-         racket/port
-         racket/set
-         xml
-         racket/flonum
-         racket/unsafe/ops
+(require srfi/1
+         srfi/4
+         (only-in racket/port reencode-input-port)
+         (only-in xml read-xml xml->xexpr element-content element-attributes attribute-name attribute-value document-element element? element-name)
+         (only-in racket/flonum for/flvector flvector-length in-flvector make-flvector flvector-copy flvector-ref)
+         (only-in racket/unsafe/ops unsafe-fl* unsafe-fl+ unsafe-fx* unsafe-fx+ unsafe-flvector-set! unsafe-flvector-ref unsafe-fl> unsafe-fl- unsafe-fx- unsafe-fx< unsafe-fx>= unsafe-flsqrt unsafe-fx->fl unsafe-fl< unsafe-flabs unsafe-bytes-set!)
+         (only-in racket/class new send make-object)
+         (only-in racket/gui/base make-bitmap bitmap-dc% color% font% frame% canvas%)
          "constants-filenames.rkt"
          )
 
@@ -132,7 +133,7 @@
         (raise "Failure to load radical file"))
       (set! radk-list file-list)
       (set! radk-bystroke (for/hasheqv ([(k v) (in-hash file-strokes)])
-                            (values k (list->set v)))) )))
+                            (values k v))) )))
 
 ;;;
 ;;; load-datafiles
@@ -305,7 +306,7 @@
                         [[#\$]
                          (set! rad (string-ref ln 2))
                          (let ([strk (string->number (cadr (regexp-match "\\$ . ([0-9]+)" ln)))])
-                           (hash-set! radk-bystroke strk (set-add (hash-ref radk-bystroke strk (seteqv)) rad)))
+                           (hash-set! radk-bystroke strk (lset-union eqv? (hash-ref radk-bystroke strk '()) (list rad))))
                          ]
                         
                         
@@ -317,7 +318,7 @@
           (write "Kanji Radicals" fo)
           (write radk-list fo)
           (write (for/hasheqv ([(k v) (in-hash radk-bystroke)])
-                   (values k (set->list v)))
+                   (values k v))
                  fo) )))))
   
 (define (dc200x200->vector100x100/session)

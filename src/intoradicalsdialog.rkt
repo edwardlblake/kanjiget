@@ -22,8 +22,8 @@
 
 |#
 
-(require racket/class
-         racket/gui/base
+(require (only-in racket/class new send)
+         (only-in racket/gui/base dialog% message% horizontal-pane% check-box%)
          "kanjidb.rkt"
          "app-labels-en.rkt")
 
