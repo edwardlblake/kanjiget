@@ -1,4 +1,4 @@
-#lang typed/racket/base/no-check
+#lang racket/base
 
 #|
 
