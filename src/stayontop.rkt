@@ -22,7 +22,8 @@
 
 |#
 
-(require ffi/unsafe)
+(require (only-in ffi/unsafe get-ffi-obj _fun _pointer _int)
+         )
 
 (provide WINAPI_SetWindowPos
          WINAPI_HWND_TOPMOST
