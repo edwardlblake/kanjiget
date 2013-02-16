@@ -22,6 +22,10 @@
 
 |#
 
+(require srfi/1
+         srfi/69
+         "constants-filenames.rkt")
+
 (provide wikt-wordlist-from-word
          wikt-has-definition?
          wikt-get-definition
@@ -29,14 +33,11 @@
          create-wiktionary-data-file-if-needed
          make-wiktionary-data-files)
 
-(require srfi/1
-         "constants-filenames.rkt")
-
 #|
 || "Database" lookup variables.
 |#
-(define wikt-lookup-hash (make-hash))
-(define wikt-index-hash (make-hash))
+(define wikt-lookup-hash (make-hash-table))
+(define wikt-index-hash (make-hash-table))
 (define wikt-data-file #f)
 
 #|
@@ -46,21 +47,21 @@
 (define (wikt-wordlist-from-word wrd)
   (apply lset-intersection equal?
          (for/list ([c (string->list wrd)]) 
-           (hash-ref wikt-lookup-hash c '()))))
+           (hash-table-ref wikt-lookup-hash c (lambda _ '())))))
 
 #|
 || wikt-has-definition?
 ||   Checks if a word is in the database
 |#
 (define (wikt-has-definition? wrd)
-  (hash-has-key? wikt-index-hash wrd))
+  (hash-table-exists? wikt-index-hash wrd))
 
 #|
 || wikt-get-definition
 ||   Gets the text definition of a word
 |#
 (define (wikt-get-definition wrd)
-  (define v (hash-ref wikt-index-hash wrd))
+  (define v (hash-table-ref wikt-index-hash wrd))
   (define z (car  v))
   (define y (cadr v))
   (call-with-input-file wikt-data-file
@@ -79,12 +80,12 @@
     (set! wikt-index-hash
           (call-with-input-file wiktIndex
             (λ (fx)
-              (define newhsh (make-hash))
+              (define newhsh (make-hash-table))
               (let loop ([d (read fx)])
                 (if (eof-object? d)
                     newhsh
                     (let ()
-                      (hash-set! newhsh (car d) (list (cadr d) (caddr d)))
+                      (hash-table-set! newhsh (car d) (list (cadr d) (caddr d)))
                       (loop (read fx))))
                 ))))
     (set! wikt-lookup-hash
@@ -161,11 +162,13 @@
   (define allkanj
     (call-with-input-file kanjIDX
       (λ (fi)
-        (let loop ([hsh (make-immutable-hash)]
-                   [a (read fi)])
+        (define hsh (make-hash-table))
+        (let loop ((a (read fi)))
           (if (eof-object? a)
               hsh
-              (loop (hash-set hsh (string-ref (car a) 0) #t) (read fi)))))
+              (begin
+                (hash-table-set! hsh (string-ref (car a) 0) #t)
+                (loop (read fi))))))
       #:mode 'text) )
   
   (unless (or (file-exists? wiktDataFile) (file-exists? wiktIndex))
@@ -174,7 +177,7 @@
         (call-with-output-file wiktIndex
           (λ (fx)
             (define last-title "")
-            (define hshlookup (make-hash))
+            (define hshlookup (make-hash-table))
             (define title "")
             (define text "")
             (define capture void)
@@ -222,7 +225,7 @@
                  (set! last-title title)
                  (when (eq? (char-upcase d) (char-downcase d))
                    (when (for/or ([c (in-string title)])
-                           (hash-ref allkanj c #f))
+                           (hash-table-ref allkanj c (lambda _ #f)))
                      (printf "Incl: ~s~n" title)
                      
                      (let ([text (let ([bt (open-output-string)])
@@ -240,7 +243,7 @@
                                       (regexp-replace* #rx"&quot;"
                                        (get-output-string bt) "\"") ">") "<") "&") )])
                        (for ([c (in-string title)])
-                         (hash-set! hshlookup c (cons title (hash-ref hshlookup c '()))))
+                         (hash-table-set! hshlookup c (cons title (hash-table-ref hshlookup c (lambda _ '())))))
                        (flush-output fo)
                        (write (list title (file-position fo) (string-length text)) fx) 
                        (newline fx)

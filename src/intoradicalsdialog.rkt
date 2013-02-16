@@ -22,7 +22,8 @@
 
 |#
 
-(require (only-in racket/class new send)
+(require srfi/69
+         (only-in racket/class new send)
          (only-in racket/gui/base dialog% message% horizontal-pane% check-box%)
          "kanjidb.rkt"
          "app-labels-en.rkt")
@@ -31,7 +32,7 @@
 
 (define (pick-radical-from-kanji parentwin knji)
   (let*([rdk #f]
-        [knjrads (make-hasheqv '())]
+        [knjrads (make-hash-table eqv?)]
         [frame (new dialog%
                     [parent parentwin]
                     [label STR_LABEL_SELECTRADICALS]
@@ -43,14 +44,17 @@
                   [stretchable-height #f]	 
                   [auto-resize #f])])
     
-    (for ([(lr ln) (in-hash radk-list)])
-      (for ([k ln])
-        (when (equal? k knji)
-          (hash-set! knjrads lr #t) )))
+    (hash-table-fold radk-list
+      (lambda (lr ln _)
+        (for ([k ln])
+          (when (equal? k knji)
+            (hash-table-set! knjrads lr #t) )))
+      #f)
     
     (let ([pl (new horizontal-pane% [parent frame] [alignment '(left top)])])
-      (for ([(k y) (in-hash knjrads)])
-        (new check-box%
+      (hash-table-fold knjrads
+        (lambda (k y _)
+          (new check-box%
              [label (format "~a" k)]
              [parent pl]
              [callback
@@ -58,6 +62,8 @@
                 (set! rdk k)
                 (send frame show #f) )]
              [value #f]
-             [stretchable-height #f]) ))
+             [stretchable-height #f]))
+        #f)
+      )
     (send frame show #t)
     rdk ))

@@ -23,10 +23,10 @@
 |#
 
 (require srfi/1
+         srfi/69
          (only-in racket/class new send make-object class init super-new define/override this super)
          (only-in racket/gui/base frame% menu-bar% menu% menu-item% append-editor-operation-menu-items checkable-menu-item% horizontal-pane% vertical-pane% make-bitmap bitmap-dc% color% canvas% choice% button% editor-canvas% message% check-box% list-box% view-control-font normal-control-font popup-menu% text-field% message-box text% style-delta%)
          (only-in racket/list add-between)
-         (only-in racket/dict dict-ref dict-count in-dict)
          "kanjidb.rkt"
          "wiktionarydb.rkt"
          "wiktionaryviewer.rkt"
@@ -362,7 +362,7 @@
         [kanjilst1 (for/list([i (in-range 0 (length kanjilst))]
                              [e kanjilst]
                              #:when (let*([k (cdr e)]
-                                          [kfl (hash-ref kanjiinfo k)])
+                                          [kfl (hash-table-ref kanjiinfo k)])
                                       (if (eq? i 0)
                                           (viewradicalfilter k)
                                           (and
@@ -376,16 +376,17 @@
     (for ([e kanjilst2])
       (let* ([scr (car e)]
              [ltr (cdr e)]
-             [knfl (hash-ref kanjiinfo ltr)])
+             [knfl (hash-table-ref kanjiinfo ltr)])
         (let ([lix (send kanji-results-list get-number)]
               [knf-grade    (UDT-kanji-info-grade knfl)]
               [knj-readings (UDT-kanji-info-readings knfl)]
               [knj-meanings (UDT-kanji-info-meanings knfl)]
               )
-          (let*([knj-readings2 (if (equal? #f knj-readings) (make-hash) knj-readings)]
-                [knj-meanings2 (if (equal? #f knj-meanings) (make-hash) knj-meanings)]
-                [readingslist (append (dict-ref knj-readings2 'ja_on '()) (dict-ref knj-readings2 'ja_kun '()))]
-                [meaningslist (dict-ref knj-meanings2 'en '())])
+          (let*([knj-readings2 (if (eq? #f knj-readings) (make-hash-table) knj-readings)]
+                [knj-meanings2 (if (eq? #f knj-meanings) (make-hash-table) knj-meanings)]
+                [readingslist (append (cdr (or (assoc 'ja_on knj-readings2) (cons #f '())))
+                                      (cdr (or (assoc 'ja_kun knj-readings2) (cons #f '()))))]
+                [meaningslist (cdr (or (assoc 'en knj-meanings2) (cons #f '())))])
             
             (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
             (send kanji-results-list set-string lix (string ltr) 1)
@@ -474,14 +475,16 @@
                                   btnfilterview-check4)]
                        [idx (list 0 1 2 3)]
                        #:when (if (send chk get-value)
-                                  (hash-ref radk-list (vector-ref radicalcells idx) #f)
+                                  (hash-table-ref radk-list
+                                        (vector-ref radicalcells idx)
+                                        (lambda _ #f))
                                   #f))
               (vector-ref radicalcells idx)
               )])
     (if (equal? '() rl)
         (set! viewradicalfilter (λ (k) #t))
         (let*([o (let*([kl (map (λ (r)
-                                  (delete-duplicates (cons r (hash-ref radk-list r)) eqv?)) rl)]
+                                  (delete-duplicates (cons r (hash-table-ref radk-list r)) eqv?)) rl)]
                        [setop lset-intersection])
                    (apply setop eqv? kl))])
           (set! viewradicalfilter (λ (k) (memv k o))))))
@@ -519,7 +522,7 @@
       (let ([sel (send lst get-selection)])
         (unless (equal? #f sel)
           (let*([ltr (send lst get-data sel)]
-                [knfl (hash-ref kanjiinfo (string-ref ltr 0))]
+                [knfl (hash-table-ref kanjiinfo (string-ref ltr 0))]
                 [knf-grade     (UDT-kanji-info-grade knfl)]
                 [knf-strokenum (UDT-kanji-info-strokenum knfl)]
                 [knf-variant   (UDT-kanji-info-variant knfl)]
@@ -531,7 +534,7 @@
                 [knf-dicref    (UDT-kanji-info-dicref knfl)])
             (set! cursel-kanji (string-ref ltr 0))
             (cond
-              [(> (length (hash-ref radk-list (string-ref ltr 0) '())) 0)
+              [(> (length (hash-table-ref radk-list (string-ref ltr 0) (lambda _ '()))) 0)
                (set! cursel-radical (string-ref ltr 0))
                (enabledisable-actions)
                ]
@@ -576,19 +579,21 @@
             
             (let ()
               (define (mytxt2-append-dh-dl kttl knfl)
-                (unless (or (equal? #f knfl) ((dict-count knfl) . < . 1))
+                (unless (or (equal? #f knfl) ((length knfl) . < . 1))
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "~a~n" kttl) eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
-                  (for ([(k v) (in-dict knfl)])
-                    (let ([eb (send mytxt2 last-position)])
-                      (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
-                      (send mytxt2 change-style sty2-normal eb 'end #f))
-                    (for ([w (cdr v)])
-                      (let ([eb (send mytxt2 last-position)])
-                        (send mytxt2 insert (format "\t\t~a~n" w) eb)
-                        (send mytxt2 change-style sty2-normal eb 'end #f)))))
-                )
+                  (for ([ae knfl])
+                    (let ((k (car ae))
+                          (v (cdr ae))
+                          (let ([eb (send mytxt2 last-position)])
+                            (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
+                            (send mytxt2 change-style sty2-normal eb 'end #f))
+                          (for ([w (cdr v)])
+                            (let ([eb (send mytxt2 last-position)])
+                              (send mytxt2 insert (format "\t\t~a~n" w) eb)
+                              (send mytxt2 change-style sty2-normal eb 'end #f))))))
+                  )
               (mytxt2-append-dh-dl STR_DESCTEXT_READINGS knf-readings)
               (mytxt2-append-dh-dl STR_DESCTEXT_MEANINGS knf-meanings)
               (mytxt2-append-dh-dl STR_DESCTEXT_NANORI   knf-nanori)

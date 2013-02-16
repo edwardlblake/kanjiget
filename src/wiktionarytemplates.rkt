@@ -22,27 +22,26 @@
 
 |#
 
-(provide get-wiktionary-templates)
+(require srfi/69)
 
+(provide get-wiktionary-templates)
 (define (get-wiktionary-templates)
-  (define templates (make-hash))
+  (define templates (make-hash-table))
   
   (define-syntax wikt-templates-table
     (syntax-rules (* show-as)
       [(wikt-templates-table * num classname (show-as fmt args argx) rst ...)
        (let ()
-         (hash-set! templates classname
-                     (λ (args)
-                       (format fmt . argx)
-                       ))
+         (hash-table-set! templates classname
+                          (λ (args)
+                            (format fmt . argx) ))
          (wikt-templates-table rst ...))]
       
       [(wikt-templates-table * num classname _ (show-as fmt args argx) rst ...)
        (let ()
-         (hash-set! templates classname
-                     (λ (args)
-                       (format fmt . argx)
-                       ))
+         (hash-table-set! templates classname
+                          (λ (args)
+                            (format fmt . argx) ))
          (wikt-templates-table rst ...))]
       
       [(wikt-templates-table a rst ...)

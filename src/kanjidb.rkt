@@ -24,6 +24,7 @@
 
 (require srfi/1
          srfi/4
+         srfi/69
          (only-in racket/port reencode-input-port)
          (only-in xml read-xml xml->xexpr element-content element-attributes attribute-name attribute-value document-element element? element-name)
          (only-in racket/flonum for/flvector flvector-length in-flvector make-flvector flvector-copy flvector-ref)
@@ -66,8 +67,8 @@
 
 (define kanjivectors '())
 (define kanjiinfo    #f)
-(define radk-list (make-hasheqv))
-(define radk-bystroke (make-hasheqv '()))
+(define radk-list     (make-hash-table eqv?))
+(define radk-bystroke (make-hash-table eqv?))
 
 ;;;
 ;;; do-kanjisearch
@@ -85,7 +86,7 @@
                        (unsafe-fl+ sum (unsafe-fl* e0 e1)))
                      (car p)) )]
         [lst (for/list ([zc lsz])
-               (let ([zd (- stroke (car (UDT-kanji-info-strokenum (hash-ref kanjiinfo (cdr zc)))))])
+               (let ([zd (- stroke (car (UDT-kanji-info-strokenum (hash-table-ref kanjiinfo (cdr zc)))))])
                  (cons (+ (car zc) (/->0 strokefactor zd))
                        (cdr zc)) ))])
     (reverse (sort lst < #:key car #:cache-keys? #t)) ))
@@ -100,7 +101,7 @@
     (λ (fi)
       (call-with-input-file FileMTX
         (λ (fim)
-          (set! kanjiinfo (make-hasheqv))
+          (set! kanjiinfo (make-hash-table eqv?))
           (let*([vlen (* RECMATRIX_WIDTH RECMATRIX_HEIGHT)]
                 [bs (make-bytes (* 4 vlen))])
             (set! kanjivectors
@@ -109,7 +110,7 @@
                         '()
                         (begin
                           (read-bytes! bs fim)
-                          (hash-set! kanjiinfo (string-ref (car u) 0)
+                          (hash-table-set! kanjiinfo (string-ref (car u) 0)
                                      (apply UDT-kanji-info u))
                           (cons (cons (string-ref (car u) 0)
                                       (for/flvector ([i (in-range 0 vlen)])
@@ -132,8 +133,7 @@
                 (eof-object? file-strokes))
         (raise "Failure to load radical file"))
       (set! radk-list file-list)
-      (set! radk-bystroke (for/hasheqv ([(k v) (in-hash file-strokes)])
-                            (values k v))) )))
+      (set! radk-bystroke (alist->hash-table file-strokes eqv?) ))))
 
 ;;;
 ;;; load-datafiles
@@ -214,7 +214,7 @@
                                       [else (void)])))]
                                
                                [[dic_number]
-                                (let ([tmplist-dicref (make-hash)])
+                                (let ([tmplist-dicref (make-hash-table)])
                                   (for ([c (element-content b)])
                                     (when (element? c)
                                       (case (element-name c)
@@ -225,15 +225,15 @@
                                              (set! type (format "~a p. ~a vol. ~a" type
                                                                 (pick-elem-attr c 'm_page)
                                                                 (pick-elem-attr c 'm_vol))) )
-                                           (hash-set! tmplist-dicref type
-                                                      (cons nval (hash-ref tmplist-dicref type '()))) )]
+                                           (hash-table-set! tmplist-dicref type
+                                                      (cons nval (hash-table-ref tmplist-dicref type (lambda _ '())))) )]
                                         [else (void)])))
-                                  (set! knj-dicref (hash->list tmplist-dicref)) )]
+                                  (set! knj-dicref (hash-table->alist tmplist-dicref)) )]
                                
                                [[reading_meaning]
-                                (let ([tmplist-nanori   (make-hash)]
-                                      [tmplist-readings (make-hash)]
-                                      [tmplist-meanings (make-hash)])
+                                (let ([tmplist-nanori   (make-hash-table)]
+                                      [tmplist-readings (make-hash-table)]
+                                      [tmplist-meanings (make-hash-table)])
                                   
                                   (for ([c (element-content b)])
                                     (when (element? c)
@@ -245,25 +245,25 @@
                                                [[reading]
                                                 (let ([type (string->symbol (pick-elem-attr d 'r_type))]
                                                       [nval (pick-elem-cont d)])
-                                                  (hash-set! tmplist-readings type
-                                                             (cons nval (hash-ref tmplist-readings type '()))) )]
+                                                  (hash-table-set! tmplist-readings type
+                                                             (cons nval (hash-table-ref tmplist-readings type (lambda _ '())))) )]
                                                [[meaning]
                                                 (let ([lang (string->symbol (pick-elem-attr d 'm_lang "en"))]
                                                       [nval (pick-elem-cont d)])
-                                                  (hash-set! tmplist-meanings lang
-                                                             (cons nval (hash-ref tmplist-meanings lang '()))) )]
+                                                  (hash-table-set! tmplist-meanings lang
+                                                             (cons nval (hash-table-ref tmplist-meanings lang (lambda _ '())))) )]
                                                [else (void)])))]
                                         
                                         [[nanori]
                                          (let ([unkn (pick-elem-attr c 'unkn)] ; in case later
                                                [nval (pick-elem-cont c)])
-                                           (hash-set! tmplist-nanori unkn
-                                                      (cons nval (hash-ref tmplist-nanori unkn '()))) )]
+                                           (hash-table-set! tmplist-nanori unkn
+                                                      (cons nval (hash-table-ref tmplist-nanori unkn (lambda _ '())))) )]
                                         
                                         [else (void)])))
-                                  (set! knj-readings (hash->list tmplist-readings))
-                                  (set! knj-meanings (hash->list tmplist-meanings))
-                                  (set! knj-nanori   (hash->list tmplist-nanori)) )]
+                                  (set! knj-readings (hash-table->alist tmplist-readings))
+                                  (set! knj-meanings (hash-table->alist tmplist-meanings))
+                                  (set! knj-nanori   (hash-table->alist tmplist-nanori)) )]
                                [else (void)])))
                          
                          (display knj-letter)
@@ -290,8 +290,8 @@
 (define (create-radicalsfile-if-needed-from-radkfiles FileRDC rkflst)
   (unless (file-exists? FileRDC)
     (when (andmap file-exists? rkflst)
-      (define radk-list (make-hasheqv))
-      (define radk-bystroke (make-hasheqv '()))
+      (define radk-list     (make-hash-table eqv?))
+      (define radk-bystroke (make-hash-table eqv?))
       (call-with-output-file FileRDC
         (λ (fo)
           (for ([rkf rkflst])
@@ -306,20 +306,15 @@
                         [[#\$]
                          (set! rad (string-ref ln 2))
                          (let ([strk (string->number (cadr (regexp-match "\\$ . ([0-9]+)" ln)))])
-                           (hash-set! radk-bystroke strk (lset-union eqv? (hash-ref radk-bystroke strk '()) (list rad))))
+                           (hash-table-set! radk-bystroke strk (lset-union eqv? (hash-table-ref radk-bystroke strk (lambda _ '())) (list rad))))
                          ]
-                        
-                        
-                        ;[[#\$] (set! rad (string-ref ln 2))]
                         [else
-                         (hash-set! radk-list rad (append (hash-ref radk-list rad '()) (string->list ln))) ])
+                         (hash-table-set! radk-list rad (append (hash-table-ref radk-list rad (lambda _ '())) (string->list ln))) ])
                       
                       (loop (read-line fic 'any)) ))))))
           (write "Kanji Radicals" fo)
           (write radk-list fo)
-          (write (for/hasheqv ([(k v) (in-hash radk-bystroke)])
-                   (values k v))
-                 fo) )))))
+          (write (hash-table->alist radk-bystroke eqv?) fo) )))))
   
 (define (dc200x200->vector100x100/session)
   (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
