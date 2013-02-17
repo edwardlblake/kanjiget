@@ -22,7 +22,8 @@
 
 |#
 
-(require (only-in racket/class new send class init super-new define/override super make-object)
+(require srfi/69
+         (only-in racket/class new send class init super-new define/override super make-object)
          (only-in racket/gui/base frame% menu-bar% menu% append-editor-operation-menu-items checkable-menu-item% horizontal-pane% editor-canvas% text% style-delta% color% editor-snip%)
          (only-in racket/match match)
          (for-syntax racket/match/parse) ; workaround for raco exe/distribute
@@ -191,8 +192,8 @@
       (define args (regexp-split #rx"\\|" inside))
       (string-append
        (substring txt 0 (car posn))
-       ((hash-ref rewriteshash (regexp-replace* #rx"^ +| +$" (string-downcase (car args)) "")
-                  (λ () (λ (a) (format "[[Template:~a]]" (car args)))))
+       ((hash-table-ref rewriteshash (regexp-replace* #rx"^ +| +$" (string-downcase (car args)) "")
+          (λ () (λ (a) (format "[[Template:~a]]" (car args)))))
         (cdr args))
        (substring txt (cdr posn)))
       )

@@ -339,30 +339,30 @@
         
         (for ([m-> (in-range 0   100  1)]
               [m<- (in-range 200 100 -1)])
-          (when (equal? #f rscl-left)
+          (when (eq? #f rscl-left)
             (send tbt get-argb-pixels m-> 0 1 200 mcpx0 #f #t)
             (when (> (sumpxlarr) 0)
               (set! rscl-left m->) ))
-          (when (equal? #f rscl-right)
+          (when (eq? #f rscl-right)
             (send tbt get-argb-pixels m<- 0 1 200 mcpx0 #f #t)
             (when (> (sumpxlarr) 0)
               (set! rscl-right m<-) ))
-          (when (equal? #f rscl-top)
+          (when (eq? #f rscl-top)
             (send tbt get-argb-pixels 0 m-> 200 1 mcpx0 #f #t)
             (when (> (sumpxlarr) 0)
               (set! rscl-top m->) ))
-          (when (equal? #f rscl-bottom)
+          (when (eq? #f rscl-bottom)
             (send tbt get-argb-pixels 0 m<- 200 1 mcpx0 #f #t)
             (when (> (sumpxlarr) 0)
               (set! rscl-bottom m<-) )))
         
-        (when (equal? #f rscl-left)
+        (when (eq? #f rscl-left)
           (set! rscl-left 0) )
-        (when (equal? #f rscl-right)
+        (when (eq? #f rscl-right)
           (set! rscl-right 200) )
-        (when (equal? #f rscl-top)
+        (when (eq? #f rscl-top)
           (set! rscl-top 0) )
-        (when (equal? #f rscl-bottom)
+        (when (eq? #f rscl-bottom)
           (set! rscl-bottom 200) )
         
         (send drbt set-scale
@@ -450,7 +450,7 @@
         (unsafe-bytes-set! px0 (+ 2 ycl) pxval)
         (unsafe-bytes-set! px0 (+ 3 ycl) pxval) ))
     (send rbt set-argb-pixels 0 0 RECMATRIX_WIDTH RECMATRIX_HEIGHT px0 #f #t)
-    (unless (equal? #f vky)
+    (unless (eq? #f vky)
       (for ([i (in-range 0 vlen)])
         (let* ([pxval (inexact->exact (round (* 255 (flvector-ref vky i))))]
                [ycl (* i 4)])
@@ -462,7 +462,7 @@
     
     (define frx
       (new frame%
-           [label (if (equal? #f scr) "Debugging Vector" (format "Debug: ~s" scr))]
+           [label (if (eq? #f scr) "Debugging Vector" (format "Debug: ~s" scr))]
            [width 200]
            [height 200]))
     (new canvas%
@@ -477,7 +477,7 @@
          [min-height 204]
          [stretchable-width #f]
          [stretchable-height #f])
-    (unless (equal? #f vky)
+    (unless (eq? #f vky)
       (new canvas%
            [parent frx]
            [paint-callback

@@ -22,6 +22,8 @@
 
 |#
 
+(require srfi/69)
+
 (provide get-preference-folder
          read-preferences
          write-preferences)
@@ -44,7 +46,7 @@
        (build-path pd ".KanjiGet"))]))
 
 (define (read-preferences)
-  (with-handlers ([exn:fail? (λ (x) (make-hasheq))])
+  (with-handlers ([exn:fail? (λ (x) (make-hash-table eq?))])
     (call-with-input-file* 
         (build-path (get-preference-folder) "preferences.txt")
       (λ (fi)

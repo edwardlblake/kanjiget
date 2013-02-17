@@ -390,7 +390,7 @@
             
             (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
             (send kanji-results-list set-string lix (string ltr) 1)
-            (send kanji-results-list set-string lix (if (equal? #f knf-grade) "" (format "~a" knf-grade)) 2)
+            (send kanji-results-list set-string lix (if (eq? #f knf-grade) "" (format "~a" knf-grade)) 2)
             (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify2 readingslist)) 3)
             (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify  meaningslist)) 4)
             (send kanji-results-list set-string lix (format "~a" scr) 5)
@@ -481,7 +481,7 @@
                                   #f))
               (vector-ref radicalcells idx)
               )])
-    (if (equal? '() rl)
+    (if (eq? '() rl)
         (set! viewradicalfilter (λ (k) #t))
         (let*([o (let*([kl (map (λ (r)
                                   (delete-duplicates (cons r (hash-table-ref radk-list r)) eqv?)) rl)]
@@ -498,7 +498,7 @@
        [callback
         (λ (chk evt)
           (when (and 
-                 (equal? #f (vector-ref radicalcells a))
+                 (eq? #f (vector-ref radicalcells a))
                  (equal? #t (send chk get-value)))
             (radicalcells-setcell! a (pick-radical-from-list frame))
             )
@@ -520,7 +520,7 @@
   (let ()
     (define (kanji-results-list-event-select lst evt)
       (let ([sel (send lst get-selection)])
-        (unless (equal? #f sel)
+        (unless (eq? #f sel)
           (let*([ltr (send lst get-data sel)]
                 [knfl (hash-table-ref kanjiinfo (string-ref ltr 0))]
                 [knf-grade     (UDT-kanji-info-grade knfl)]
@@ -556,7 +556,7 @@
             
             (let ()
               (define (mytxt2-append-dh-dd kttl knfv knfi)
-                (unless (equal? #f knfv)
+                (unless (eq? #f knfv)
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format kttl) eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
@@ -579,20 +579,20 @@
             
             (let ()
               (define (mytxt2-append-dh-dl kttl knfl)
-                (unless (or (equal? #f knfl) ((length knfl) . < . 1))
+                (unless (or (eq? #f knfl) (< (length knfl) 1))
                   (let ([eb (send mytxt2 last-position)])
                     (send mytxt2 insert (format "~a~n" kttl) eb)
                     (send mytxt2 change-style sty2-normal eb 'end #f))
                   (for ([ae knfl])
                     (let ((k (car ae))
-                          (v (cdr ae))
-                          (let ([eb (send mytxt2 last-position)])
-                            (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
-                            (send mytxt2 change-style sty2-normal eb 'end #f))
-                          (for ([w (cdr v)])
-                            (let ([eb (send mytxt2 last-position)])
-                              (send mytxt2 insert (format "\t\t~a~n" w) eb)
-                              (send mytxt2 change-style sty2-normal eb 'end #f))))))
+                          (v (cdr ae)))
+                      (let ([eb (send mytxt2 last-position)])
+                        (send mytxt2 insert (format "\t~a\t~a~n" k (car v)) eb)
+                        (send mytxt2 change-style sty2-normal eb 'end #f))
+                      (for ([w (cdr v)])
+                        (let ([eb (send mytxt2 last-position)])
+                          (send mytxt2 insert (format "\t\t~a~n" w) eb)
+                          (send mytxt2 change-style sty2-normal eb 'end #f))))))
                   )
               (mytxt2-append-dh-dl STR_DESCTEXT_READINGS knf-readings)
               (mytxt2-append-dh-dl STR_DESCTEXT_MEANINGS knf-meanings)
