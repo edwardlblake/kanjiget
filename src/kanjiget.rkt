@@ -23,6 +23,7 @@
 |#
 
 (require srfi/1
+         srfi/34
          srfi/69
          (only-in racket/class new send make-object class init super-new define/override this super)
          (only-in racket/gui/base frame% menu-bar% menu% menu-item% append-editor-operation-menu-items checkable-menu-item% horizontal-pane% vertical-pane% make-bitmap bitmap-dc% color% canvas% choice% button% editor-canvas% message% check-box% list-box% view-control-font normal-control-font popup-menu% text-field% message-box text% style-delta%)
@@ -748,7 +749,7 @@
         (define txt (send btnpnlkanjiactions-knjtxtbox get-value))
         (when (> (string-length txt) 0)
           (define lst (wikt-wordlist-from-word txt))
-          (with-handlers ([exn:fail? void])
+          (guard (condition (#t (void)))
             (for/or ([a lst])
               (if (equal? (substring a 0 (string-length txt)) txt)
                   (let ()
@@ -780,7 +781,7 @@
        [callback
         (λ (btn evt)
           (let ([txt (send btnpnlkanjiactions-knjtxtbox get-value)])
-            (with-handlers ([exn:fail? (λ _ (message-box "Definitions" "No entry found!"))])
+            (guard (condition (#t (message-box "Definitions" "No entry found!")))
               (open-wiktionary txt)
               )
             )
@@ -822,10 +823,8 @@
   (send mytxtconv2 set-editor mytxt2)
   (send frame show #t)
   
-  (with-handlers 
-      ([exn:fail? 
-        (λ (e) 
-          (new message% [parent frame] [label (format "Error: ~a" e)]))])
+  (guard (condition
+          (#t (new message% [parent frame] [label (format "Error: ~a" condition)])))
     (load-datafiles
      (resolve-data-file-path CONST_FILE_KANJIIDX0)
      (resolve-data-file-path CONST_FILE_KANJIMTX)

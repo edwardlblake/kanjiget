@@ -22,7 +22,8 @@
 
 |#
 
-(require srfi/69)
+(require srfi/34
+         srfi/69)
 
 (provide get-preference-folder
          read-preferences
@@ -46,7 +47,7 @@
        (build-path pd ".KanjiGet"))]))
 
 (define (read-preferences)
-  (with-handlers ([exn:fail? (λ (x) (make-hash-table eq?))])
+  (guard (condition (#t (make-hash-table eq?)))
     (call-with-input-file* 
         (build-path (get-preference-folder) "preferences.txt")
       (λ (fi)
@@ -62,7 +63,7 @@
           (begin 
             (make-directory fl) 
             fl))))
-  (with-handlers ([exn:fail? (λ (x) (printf "Error: could not write preference file.~n"))])
+  (guard (condition (#t (printf "Error: could not write preference file.~n")))
     (call-with-output-file*
      (build-path (get-preference-folder/create) "preferences.txt")
      (λ (fo)
