@@ -370,17 +370,17 @@
                              [a (car listspec)]
                              [x (car last-listspec)])
                          (if (and (not lastone) (eq? a x))
-                             (loop (cdr listspec) (cdr last-listspec) (add1 i)
+                             (loop (cdr listspec) (cdr last-listspec) (+ i 1)
                                    (vector-ref last-listeditors i)
                                    (λ _ (wikt-add-text (format "~n") (vector-ref last-listeditors i))))
                              (let ()
                                (addnl)
-                               (for ([j (in-range (add1 i) 30)])
+                               (for ([j (in-range (+ i 1) 30)])
                                  (vector-set! last-listincrements j 0)
                                  )
                                (case a
                                  [[#\#] 
-                                  (define num (add1 (vector-ref last-listincrements i)))
+                                  (define num (+ (vector-ref last-listincrements i) 1))
                                   (vector-set! last-listincrements i num)
                                   (wikt-add-text (format " ~a. " num) edt)]
                                  [[#\*] (wikt-add-text "  • " edt)]
@@ -389,7 +389,7 @@
                                
                                (let ([newedt (make-subtext edt)])
                                  (vector-set! last-listeditors i newedt)
-                                 (loop (cdr listspec) (cdr last-listspec) (add1 i) newedt
+                                 (loop (cdr listspec) (cdr last-listspec) (+ i 1) newedt
                                        (λ _ (wikt-add-text (format "~n") newedt))) ))))
                        edt )))
                (set! last-listspec listspec)

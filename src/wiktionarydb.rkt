@@ -33,6 +33,13 @@
          create-wiktionary-data-file-if-needed
          make-wiktionary-data-files)
 
+;; Implementation specific stuff
+(define ::input-port-byte-position  file-position)
+(define ::output-port-byte-position file-position)
+(define ::force-output flush-output)
+(define (::read-substring! a s e p) (read-string! a p s e))
+
+
 #|
 || "Database" lookup variables.
 |#
@@ -66,8 +73,10 @@
   (define y (cadr v))
   (call-with-input-file wikt-data-file
     (λ (fd)
-      (file-position fd z)
-      (read-string y fd) )
+      (define sb (make-string y #\nul))
+      (::input-port-byte-position fd z)
+      (::read-substring! sb 0 y fd)
+      sb)
     #:mode 'text))
 
 #|
@@ -244,8 +253,8 @@
                                        (get-output-string bt) "\"") ">") "<") "&") )])
                        (for ([c (in-string title)])
                          (hash-table-set! hshlookup c (cons title (hash-table-ref hshlookup c (lambda _ '())))))
-                       (flush-output fo)
-                       (write (list title (file-position fo) (string-length text)) fx) 
+                       (::force-output fo)
+                       (write (list title (::output-port-byte-position fo) (string-length text)) fx) 
                        (newline fx)
                        (fprintf fo "~a~n~n" text)
                        (set! title "")
@@ -253,11 +262,11 @@
             (call-with-output-file wiktLookup
               (λ (flo)
                 (write hshlookup flo)
-                (flush-output flo) )
+                (::force-output flo) )
               #:mode 'text
               #:exists 'replace )
-            (flush-output fo)
-            (flush-output fx)
+            (::force-output fo)
+            (::force-output fx)
             )
           #:mode 'text ) )
       #:mode 'text ) )

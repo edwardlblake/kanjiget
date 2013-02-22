@@ -143,7 +143,7 @@
 
 (define (add-manual-radical-slot a)
   (new menu-item%
-       [label (format STR_FORMAT_SLOT (add1 a))]
+       [label (format STR_FORMAT_SLOT (+ a 1))]
        [parent mnu.view.manualradical]
        [callback
         (λ (itm evt)
@@ -151,7 +151,7 @@
           (refresh-radical-filter)
           (refresh-results)
           )]
-       [help-string (format STR_FORMAT_SLOT_HELPSTRING (add1 a))]
+       [help-string (format STR_FORMAT_SLOT_HELPSTRING (+ a 1))]
        )
   )
 (define mnu.view.manualradical.slot1
@@ -232,8 +232,8 @@
   (send dbtg set-scale 1 1)
   (send dbtg set-text-foreground (make-object color% 0 0 0 0.6))
   (let-values([(tw th j0 j1) (send dbtg get-text-extent STR_DRAW_KANJI_HERE)])
-    (let ([v ((200 . / . 2) . - . (tw . / . 2)) ]
-          [w ((200 . / . 2) . - . (th . / . 2)) ])
+    (let ([v (- (/ 200 2) (/ tw 2)) ]
+          [w (- (/ 200 2) (/ th 2)) ])
       (send dbtg draw-text STR_DRAW_KANJI_HERE v w)
       )
     )
@@ -244,7 +244,7 @@
     )
   (send dbtg set-pen (make-object color% 0 0 0 0.2) 2 'solid)
   (for ([a (list 1 2 3 4 5 6)])
-    (for ([v (list (3   . * . a) (200 . - . (3   . * . a)))])
+    (for ([v (list (* 3 a) (- 200 (* 3 a)))])
       (send dbtg draw-line 0 v 200 v)
       (send dbtg draw-line v 0 v 200)
       )
@@ -254,7 +254,7 @@
 (define lx #f)
 (define ly #f)
 (define (kanjidraw-stop x y)
-  (set! btstrokenum (add1 btstrokenum))
+  (set! btstrokenum (+ btstrokenum 1))
   (send dbt draw-line lx ly x y)
   (set! lx #f)
   (set! ly #f))
@@ -389,7 +389,7 @@
                                       (cdr (or (assoc 'ja_kun knj-readings2) (cons #f '()))))]
                 [meaningslist (cdr (or (assoc 'en knj-meanings2) (cons #f '())))])
             
-            (send kanji-results-list append (format "~a" (add1 lix)) (string ltr))
+            (send kanji-results-list append (format "~a" (+ lix 1)) (string ltr))
             (send kanji-results-list set-string lix (string ltr) 1)
             (send kanji-results-list set-string lix (if (eq? #f knf-grade) "" (format "~a" knf-grade)) 2)
             (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify2 readingslist)) 3)
@@ -569,7 +569,7 @@
               (mytxt2-append-dh-dd STR_DESCTEXT_GRADE knf-grade mytxt2deffmt)
               (mytxt2-append-dh-dd STR_DESCTEXT_STROKENUM knf-strokenum
                                    (λ (a)
-                                     (if ((length a) . > . 1)
+                                     (if (> (length a) 1)
                                          (format "\t~a ~a~n" (car a) 
                                                  (cons STR_DESCTEXT_MISCOUNTS (cdr a)))
                                          (format "\t~a~n" (car a)))))
@@ -686,13 +686,13 @@
                  ))
           (define (make-addradical-menuitem a)
             (new menu-item%
-                 [label (format STR_FORMAT_SLOT (add1 a))]
+                 [label (format STR_FORMAT_SLOT (+ a 1))]
                  [parent pmn]
                  [callback
                   (λ (btn evt)
                     (radicalcells-setcell! a cursel-radical)
                     )]
-                 [help-string (format STR_FORMAT_ADDTOSLOT_HELPSTRING (add1 a))]))
+                 [help-string (format STR_FORMAT_ADDTOSLOT_HELPSTRING (+ a 1))]))
           (make-addradical-menuitem 0)
           (make-addradical-menuitem 1)
           (make-addradical-menuitem 2)
@@ -713,13 +713,13 @@
                  ))
           (define (make-addradical-menuitem a)
             (new menu-item%
-                 [label (format STR_FORMAT_SLOT (add1 a))]
+                 [label (format STR_FORMAT_SLOT (+ a 1))]
                  [parent pmn]
                  [callback
                   (λ (btn evt)
                     (radicalcells-setcell! a (pick-radical-from-kanji frame cursel-kanji))
                     )]
-                 [help-string (format STR_FORMAT_ADDTOSLOT_HELPSTRING (add1 a))]))
+                 [help-string (format STR_FORMAT_ADDTOSLOT_HELPSTRING (+ a 1))]))
           (make-addradical-menuitem 0)
           (make-addradical-menuitem 1)
           (make-addradical-menuitem 2)

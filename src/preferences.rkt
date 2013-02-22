@@ -29,27 +29,37 @@
          read-preferences
          write-preferences)
 
+;; NOTE: Implementation specifics begin here
+(define (::path-split pt)
+  (let-values (((a b _) (split-path pt)))
+    (values (path->string a) (path->string b))))
+(define ::directory? directory-exists?)
+(define (::path-build rt pt) (path->string (::path-build rt pt)))
+(define ::system-path find-system-path)
+;; End of NOTE
+
+
 (define (get-preference-folder)
   (case (system-type)
-    [[windows] 
-     (let ([ipd (find-system-path 'pref-dir)])
-       (let-values (((a b c) (split-path ipd)))
-         (let-values (((g h k) (split-path a)))
-           (if (equal? h (string->path "Roaming"))
-               (build-path a "KanjiGet")
-               (build-path ipd "KanjiGet")
+    [[windows]
+     (let ([ipd (::system-path 'pref-dir)])
+       (let-values (((a b) (::path-split ipd)))
+         (let-values (((g h) (::path-split a)))
+           (if (equal? h "Roaming")
+               (::path-build a "KanjiGet")
+               (::path-build ipd "KanjiGet")
                ))))]
     [[macosx]
-     (let ([pd (find-system-path 'pref-dir)])
-       (build-path pd "KanjiGet"))]
+     (let ([pd (::system-path 'pref-dir)])
+       (::path-build pd "KanjiGet"))]
     [else 
-     (let ([pd (find-system-path 'home-dir)])
-       (build-path pd ".KanjiGet"))]))
+     (let ([pd (::system-path 'home-dir)])
+       (::path-build pd ".KanjiGet"))]))
 
 (define (read-preferences)
   (guard (condition (#t (make-hash-table eq?)))
     (call-with-input-file* 
-        (build-path (get-preference-folder) "preferences.txt")
+        (::path-build (get-preference-folder) "preferences.txt")
       (λ (fi)
         (read fi)
         )
@@ -58,14 +68,14 @@
 (define (write-preferences nv)
   (define (get-preference-folder/create)
     (let ([fl (get-preference-folder)])
-      (if (directory-exists? fl)
+      (if (::directory? fl)
           fl
           (begin 
             (make-directory fl) 
             fl))))
   (guard (condition (#t (printf "Error: could not write preference file.~n")))
     (call-with-output-file*
-     (build-path (get-preference-folder/create) "preferences.txt")
+     (::path-build (get-preference-folder/create) "preferences.txt")
      (λ (fo)
        (write nv fo)
        )

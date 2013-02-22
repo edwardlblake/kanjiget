@@ -24,6 +24,7 @@
 
 (require srfi/1
          srfi/4
+         srfi/9
          srfi/69
          (only-in racket/port reencode-input-port)
          (only-in xml read-xml xml->xexpr element-content element-attributes attribute-name attribute-value document-element element? element-name)
@@ -38,7 +39,18 @@
          kanjiinfo
          radk-list
          radk-bystroke
-         (struct-out UDT-kanji-info)
+         UDT-kanji-info
+         UDT-kanji-info-kanjichar
+         UDT-kanji-info-???
+         UDT-kanji-info-grade
+         UDT-kanji-info-strokenum
+         UDT-kanji-info-variant
+         UDT-kanji-info-freq
+         UDT-kanji-info-jlpt
+         UDT-kanji-info-readings
+         UDT-kanji-info-meanings
+         UDT-kanji-info-nanori
+         UDT-kanji-info-dicref
          do-kanjisearch
          load-datafiles
          create-indexes-if-needed
@@ -49,21 +61,41 @@
          make-data-file-from-radkfiles
          )
 
+;; Implementation specific stuff is isolated here
+(define (::read-u8vector! u8v fi) (read-bytes! u8v fi))
+(define ::output-port-byte-position file-position)
+(define (::sort lst ls ky) (sort lst ls #:key ky))
+
 (define RECMATRIX_WIDTH 32)
 (define RECMATRIX_HEIGHT 32)
 
-(struct UDT-kanji-info
-  (kanjichar ; 0
-   ???       ; 1
-   grade     ; 2
-   strokenum ; 3
-   variant   ; 4
-   freq      ; 5
-   jlpt      ; 6
-   readings  ; 7
-   meanings  ; 8
-   nanori    ; 9
-   dicref))  ; 10
+(define-record-type :UDT-kanji-info
+  (UDT-kanji-info
+     kanjichar ; 0
+     ???       ; 1
+     grade     ; 2
+     strokenum ; 3
+     variant   ; 4
+     freq      ; 5
+     jlpt      ; 6
+     readings  ; 7
+     meanings  ; 8
+     nanori    ; 9
+     dicref)  ; 10
+  UDT-kanji-info?
+  (kanjichar UDT-kanji-info-kanjichar)
+  (???       UDT-kanji-info-???)
+  (grade     UDT-kanji-info-grade)
+  (strokenum UDT-kanji-info-strokenum)
+  (variant   UDT-kanji-info-variant)
+  (freq      UDT-kanji-info-freq)
+  (jlpt      UDT-kanji-info-jlpt)
+  (readings  UDT-kanji-info-readings)
+  (meanings  UDT-kanji-info-meanings)
+  (nanori    UDT-kanji-info-nanori)
+  (dicref    UDT-kanji-info-dicref)
+  
+  )
 
 (define kanjivectors '())
 (define kanjiinfo    #f)
@@ -89,7 +121,7 @@
                (let ([zd (- stroke (car (UDT-kanji-info-strokenum (hash-table-ref kanjiinfo (cdr zc)))))])
                  (cons (+ (car zc) (/->0 strokefactor zd))
                        (cdr zc)) ))])
-    (reverse (sort lst < #:key car #:cache-keys? #t)) ))
+    (reverse (::sort lst < car))))
 
 ;;;
 ;;; load-indexes
@@ -103,13 +135,13 @@
         (λ (fim)
           (set! kanjiinfo (make-hash-table eqv?))
           (let*([vlen (* RECMATRIX_WIDTH RECMATRIX_HEIGHT)]
-                [bs (make-bytes (* 4 vlen))])
+                [bs (make-u8vector (* 4 vlen))])
             (set! kanjivectors
                   (let loop ([u (read fi)])
                     (if (eof-object? u)
                         '()
                         (begin
-                          (read-bytes! bs fim)
+                          (::read-u8vector! bs fim)
                           (hash-table-set! kanjiinfo (string-ref (car u) 0)
                                      (apply UDT-kanji-info u))
                           (cons (cons (string-ref (car u) 0)
@@ -161,7 +193,7 @@
       (λ (fo)
         (call-with-output-file FileMTX
           (λ (fom)
-            (define bs (make-bytes (* 4 RECMATRIX_WIDTH RECMATRIX_HEIGHT)))
+            (define bs (make-u8vector (* 4 RECMATRIX_WIDTH RECMATRIX_HEIGHT)))
             (define knji->vec (kanjiletter->vector100x100/session))
             (call-with-input-file kanjidic2-xml-path
               (λ (fi)
@@ -268,7 +300,7 @@
                          
                          (display knj-letter)
                          
-                         (let ([mtxpos (file-position fom)])
+                         (let ([mtxpos (::output-port-byte-position fom)])
                            (let*([kflv (knji->vec knj-letter)]
                                  [kflvlen (flvector-length kflv)])
                              (for ([e (in-flvector kflv)]
@@ -319,7 +351,7 @@
 (define (dc200x200->vector100x100/session)
   (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
          [drbt (new bitmap-dc% [bitmap rbt])]
-         [mcpx0 (make-bytes (* 200 1 4))]
+         [mcpx0 (make-u8vector (* 200 1 4))]
          )
     (λ (tbt)
       (let ([rscl-left   #f]
@@ -333,9 +365,9 @@
             (let ([ycl (unsafe-fx* r 4)])
               (+ sum
                  (- 765
-                    (bytes-ref mcpx0 (unsafe-fx+ 1 ycl))
-                    (bytes-ref mcpx0 (unsafe-fx+ 2 ycl))
-                    (bytes-ref mcpx0 (unsafe-fx+ 3 ycl)))) )))
+                    (u8vector-ref mcpx0 (unsafe-fx+ 1 ycl))
+                    (u8vector-ref mcpx0 (unsafe-fx+ 2 ycl))
+                    (u8vector-ref mcpx0 (unsafe-fx+ 3 ycl)))) )))
         
         (for ([m-> (in-range 0   100  1)]
               [m<- (in-range 200 100 -1)])
@@ -369,14 +401,14 @@
               (/ RECMATRIX_WIDTH (- rscl-right rscl-left))
               (/ RECMATRIX_HEIGHT (- rscl-bottom rscl-top)))
         (send drbt draw-bitmap tbt (- rscl-left) (- rscl-top))
-        (let ([px0 (make-bytes (* RECMATRIX_WIDTH RECMATRIX_HEIGHT 4))]
+        (let ([px0 (make-u8vector (* RECMATRIX_WIDTH RECMATRIX_HEIGHT 4))]
               [vk0 (make-flvector (* RECMATRIX_WIDTH RECMATRIX_HEIGHT))])
           (send drbt get-argb-pixels 0 0 RECMATRIX_WIDTH RECMATRIX_HEIGHT px0 #f #t)
           (for ([i (in-range 0 (flvector-length vk0))])
             (let* ([ycl (unsafe-fx* i 4)]
-                   [pxsum (+ (bytes-ref px0 (unsafe-fx+ 1 ycl))
-                             (bytes-ref px0 (unsafe-fx+ 2 ycl))
-                             (bytes-ref px0 (unsafe-fx+ 3 ycl)))]
+                   [pxsum (+ (u8vector-ref px0 (unsafe-fx+ 1 ycl))
+                             (u8vector-ref px0 (unsafe-fx+ 2 ycl))
+                             (u8vector-ref px0 (unsafe-fx+ 3 ycl)))]
                    [pxinv (max 0 (- 255 pxsum))]
                    [pxnrm (exact->inexact (/ pxinv 255))])
               (unsafe-flvector-set! vk0 i pxnrm) ))
@@ -440,7 +472,7 @@
 (define (debug-display-vk0-bitmap vk0 [vky #f] [scr #f])
   (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
          [ybt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]
-         [px0  (make-bytes (* RECMATRIX_WIDTH RECMATRIX_HEIGHT 4))]
+         [px0  (make-u8vector (* RECMATRIX_WIDTH RECMATRIX_HEIGHT 4))]
          [vlen (flvector-length vk0)])
     (for ([i (in-range 0 vlen)])
       (let* ([pxval (inexact->exact (round (* 255 (flvector-ref vk0 i))))]

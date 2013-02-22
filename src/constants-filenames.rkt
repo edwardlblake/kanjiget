@@ -30,6 +30,15 @@
          CONST_FILE_WIKTLKUP
          resolve-data-file-path)
 
+;; NOTE: Implementation specifics begin here
+(define (::path-split pt)
+  (let-values (((a b _) (split-path pt)))
+    (values (path->string a) (path->string b))))
+(define (::path-build rt pt) (path->string (build-path rt pt)))
+(define ::system-path find-system-path)
+(define ::file? file-exists?)
+;; End of NOTE
+
 (define CONST_FILE_KANJIIDX0 "knjidxl0.dat")
 (define CONST_FILE_KANJIMTX  "kanjimtx.dat")
 (define CONST_FILE_KANJIRDC0 "knjirdc0.dat")
@@ -39,34 +48,32 @@
 (define CONST_FILE_WIKTLKUP  "wiktlkup.dat")
 
 (define (resolve-data-file-path a)
-  (define b (build-path ".." a))
-  (define c (build-path ".." "data" a))
-  (define d (build-path "data" a))
-  (define init-dir
-    (find-system-path 'init-dir))
+  (define b (::path-build ".." a))
+  (define c (::path-build ".." "data" a))
+  (define d (::path-build "data" a))
+  (define init-dir (::system-path 'init-dir))
   (define exec-dir
-    (let-values ([(a b c) (split-path (find-system-path 'exec-file))]) a))
+    (let-values ([(a b) (::path-split (::system-path 'exec-file))]) a))
   (define run-dir 
-    (let-values ([(a b c) (split-path (find-system-path 'run-file))]) a))
-  (define orig-dir
-    (find-system-path 'orig-dir))
-  (define ia (build-path init-dir a))
-  (define ib (build-path init-dir b))
-  (define ic (build-path init-dir c))
-  (define id (build-path init-dir d))
-  (define ea (build-path exec-dir a))
-  (define eb (build-path exec-dir b))
-  (define ec (build-path exec-dir c))
-  (define ed (build-path exec-dir d))
-  (define ra (build-path run-dir a))
-  (define rb (build-path run-dir b))
-  (define rc (build-path run-dir c))
-  (define rd (build-path run-dir d))
-  (define oa (build-path orig-dir a))
-  (define ob (build-path orig-dir b))
-  (define oc (build-path orig-dir c))
-  (define od (build-path orig-dir d))
-  (define h (build-path (find-system-path 'home-dir) ".KanjiGetData" a))
+    (let-values ([(a b) (::path-split (::system-path 'run-file))]) a))
+  (define orig-dir (::system-path 'orig-dir))
+  (define ia (::path-build init-dir a))
+  (define ib (::path-build init-dir b))
+  (define ic (::path-build init-dir c))
+  (define id (::path-build init-dir d))
+  (define ea (::path-build exec-dir a))
+  (define eb (::path-build exec-dir b))
+  (define ec (::path-build exec-dir c))
+  (define ed (::path-build exec-dir d))
+  (define ra (::path-build run-dir a))
+  (define rb (::path-build run-dir b))
+  (define rc (::path-build run-dir c))
+  (define rd (::path-build run-dir d))
+  (define oa (::path-build orig-dir a))
+  (define ob (::path-build orig-dir b))
+  (define oc (::path-build orig-dir c))
+  (define od (::path-build orig-dir d))
+  (define h (::path-build (::system-path 'home-dir) ".KanjiGetData" a))
   
   ; For debugging on Mac
   ;(message-box "Init" (format "~s~n~s~n~s~n~s" ia ib ic id))
@@ -74,27 +81,27 @@
   ;(message-box "RunT" (format "~s~n~s~n~s~n~s" ra rb rc rd))
   ;(message-box "Orig" (format "~s~n~s~n~s~n~s" oa ob oc od))
   (cond
-    [(file-exists? a) a ]
-    [(file-exists? b) b ]
-    [(file-exists? c) c ]
-    [(file-exists? d) d ]
-    [(file-exists? ia) ia ]
-    [(file-exists? ib) ib ]
-    [(file-exists? ic) ic ]
-    [(file-exists? id) id ]
-    [(file-exists? ea) ea ]
-    [(file-exists? eb) eb ]
-    [(file-exists? ec) ec ]
-    [(file-exists? ed) ed ]
-    [(file-exists? ra) ra ]
-    [(file-exists? rb) rb ]
-    [(file-exists? rc) rc ]
-    [(file-exists? rd) rd ]
-    [(file-exists? oa) oa ]
-    [(file-exists? ob) ob ]
-    [(file-exists? oc) oc ]
-    [(file-exists? od) od ]
-    [(file-exists? h) h ]
+    [(::file? a) a ]
+    [(::file? b) b ]
+    [(::file? c) c ]
+    [(::file? d) d ]
+    [(::file? ia) ia ]
+    [(::file? ib) ib ]
+    [(::file? ic) ic ]
+    [(::file? id) id ]
+    [(::file? ea) ea ]
+    [(::file? eb) eb ]
+    [(::file? ec) ec ]
+    [(::file? ed) ed ]
+    [(::file? ra) ra ]
+    [(::file? rb) rb ]
+    [(::file? rc) rc ]
+    [(::file? rd) rd ]
+    [(::file? oa) oa ]
+    [(::file? ob) ob ]
+    [(::file? oc) oc ]
+    [(::file? od) od ]
+    [(::file? h) h ]
     [else a]
     )
   )
