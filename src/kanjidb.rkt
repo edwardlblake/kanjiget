@@ -65,6 +65,9 @@
 (define (::read-u8vector! u8v fi) (read-bytes! u8v fi))
 (define ::output-port-byte-position file-position)
 (define (::sort lst ls ky) (sort lst ls #:key ky))
+(define (::call-with-input-file/bin f c) ( call-with-input-file f c))
+(define (::call-with-output-file/bin/keep f c) ( call-with-output-file FileIDX f c))
+(define (::call-with-input-file/text f c) ( call-with-input-file f c #:mode  'text))
 
 (define RECMATRIX_WIDTH 32)
 (define RECMATRIX_HEIGHT 32)
@@ -129,9 +132,9 @@
 ;;; Load data and recognizer matrices into memory
 ;;;
 (define (load-indexes FileIDX FileMTX)
-  (call-with-input-file FileIDX
+  (::call-with-input-file/bin FileIDX
     (λ (fi)
-      (call-with-input-file FileMTX
+      (::call-with-input-file/bin FileMTX
         (λ (fim)
           (set! kanjiinfo (make-hash-table eqv?))
           (let*([vlen (* RECMATRIX_WIDTH RECMATRIX_HEIGHT)]
@@ -155,7 +158,7 @@
 ;;; Load RDC file into memory
 ;;;
 (define (load-radicals FileRDC)
-  (call-with-input-file FileRDC
+  (::call-with-input-file/bin FileRDC
     (λ (fi)
       (define signature    (read fi))
       (define file-list    (read fi))
@@ -178,6 +181,7 @@
   (load-indexes FileIDX FileMTX)
   (load-radicals FileRDC) )
 
+
 ;;;
 ;;; create-indexes-if-needed
 ;;;
@@ -189,13 +193,13 @@
 ;;;
 (define (create-indexes-if-needed FileIDX FileMTX kanjidic2-xml-path)
   (unless (file-exists? FileIDX)
-    (call-with-output-file FileIDX
+    (::call-with-output-file/bin/keep FileIDX
       (λ (fo)
-        (call-with-output-file FileMTX
+        (::call-with-output-file/bin/keep FileMTX
           (λ (fom)
             (define bs (make-u8vector (* 4 RECMATRIX_WIDTH RECMATRIX_HEIGHT)))
             (define knji->vec (kanjiletter->vector100x100/session))
-            (call-with-input-file kanjidic2-xml-path
+            (::call-with-input-file/text kanjidic2-xml-path
               (λ (fi)
                 (define (pick-elem-cont z)
                   ((compose xml->xexpr car element-content) z))
@@ -324,10 +328,10 @@
     (when (andmap file-exists? rkflst)
       (define radk-list     (make-hash-table eqv?))
       (define radk-bystroke (make-hash-table eqv?))
-      (call-with-output-file FileRDC
+      (::call-with-output-file/bin/keep FileRDC
         (λ (fo)
           (for ([rkf rkflst])
-            (call-with-input-file rkf
+            (::call-with-input-file/bin rkf
               (λ (fi)
                 (let ([fic (reencode-input-port fi "EUC-JP" #f)]
                       [rad #f])

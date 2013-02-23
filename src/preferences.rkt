@@ -36,6 +36,8 @@
 (define ::directory? directory-exists?)
 (define (::path-build rt pt) (path->string (::path-build rt pt)))
 (define ::system-path find-system-path)
+(define (::call-with-input-file/text f c) ( call-with-input-file f c #:mode  'text))
+(define (::call-with-output-file/text/replace f c) ( call-with-output-file f c #:mode  'text #:exists  'truncate/replace))
 ;; End of NOTE
 
 
@@ -58,12 +60,11 @@
 
 (define (read-preferences)
   (guard (condition (#t (make-hash-table eq?)))
-    (call-with-input-file* 
+    (::call-with-input-file/text
         (::path-build (get-preference-folder) "preferences.txt")
       (λ (fi)
         (read fi)
-        )
-      #:mode 'text)))
+        ))))
 
 (define (write-preferences nv)
   (define (get-preference-folder/create)
@@ -74,10 +75,8 @@
             (make-directory fl) 
             fl))))
   (guard (condition (#t (printf "Error: could not write preference file.~n")))
-    (call-with-output-file*
+    (::call-with-output-file/text/replace
      (::path-build (get-preference-folder/create) "preferences.txt")
      (λ (fo)
        (write nv fo)
-       )
-     #:mode 'text
-     #:exists 'truncate/replace)))
+       ))))

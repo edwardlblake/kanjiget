@@ -38,7 +38,10 @@
 (define ::output-port-byte-position file-position)
 (define ::force-output flush-output)
 (define (::read-substring! a s e p) (read-string! a p s e))
-
+(define (::call-with-output-file/text/keep f c) ( call-with-output-file f c #:mode  'text))
+(define (::call-with-output-file/text/replace f c) ( call-with-output-file f c #:exists  'replace #:mode  'text))
+(define (::call-with-input-file/text f c) ( call-with-input-file f c #:mode  'text))
+(define (::call-with-input-file/bin f c) ( call-with-input-file f c))
 
 #|
 || "Database" lookup variables.
@@ -71,13 +74,12 @@
   (define v (hash-table-ref wikt-index-hash wrd))
   (define z (car  v))
   (define y (cadr v))
-  (call-with-input-file wikt-data-file
+  (::call-with-input-file/text wikt-data-file
     (λ (fd)
       (define sb (make-string y #\nul))
       (::input-port-byte-position fd z)
       (::read-substring! sb 0 y fd)
-      sb)
-    #:mode 'text))
+      sb)))
 
 #|
 || load-wikt-data-files
@@ -87,7 +89,7 @@
   (when (and (file-exists? wiktIndex) (file-exists? wiktDataFile) (file-exists? wiktLookup))
     (set! wikt-data-file wiktDataFile)
     (set! wikt-index-hash
-          (call-with-input-file wiktIndex
+          (::call-with-input-file/bin wiktIndex
             (λ (fx)
               (define newhsh (make-hash-table))
               (let loop ([d (read fx)])
@@ -98,7 +100,7 @@
                       (loop (read fx))))
                 ))))
     (set! wikt-lookup-hash
-          (call-with-input-file wiktLookup
+          (::call-with-input-file/bin wiktLookup
             (λ (fli)
               (read fli)))))
   )
@@ -158,7 +160,7 @@
           (values (send-out buf emit-tag-attr-value) munch-tagattrsname-start)
           (values (cons c buf) munch-tagattrsvalue)))
     
-    (call-with-input-file xmlfile
+    (::call-with-input-file/bin xmlfile
       (λ (fi)
         (for/fold ([buf '()]
                    [munch munch-content]) 
@@ -169,7 +171,7 @@
     )
   
   (define allkanj
-    (call-with-input-file kanjIDX
+    (::call-with-input-file/text kanjIDX
       (λ (fi)
         (define hsh (make-hash-table))
         (let loop ((a (read fi)))
@@ -177,13 +179,12 @@
               hsh
               (begin
                 (hash-table-set! hsh (string-ref (car a) 0) #t)
-                (loop (read fi))))))
-      #:mode 'text) )
+                (loop (read fi))))))))
   
   (unless (or (file-exists? wiktDataFile) (file-exists? wiktIndex))
-    (call-with-output-file wiktDataFile
+    (::call-with-output-file/text/keep wiktDataFile
       (λ (fo)
-        (call-with-output-file wiktIndex
+        (::call-with-output-file/text/keep wiktIndex
           (λ (fx)
             (define last-title "")
             (define hshlookup (make-hash-table))
@@ -259,17 +260,13 @@
                        (fprintf fo "~a~n~n" text)
                        (set! title "")
                        (set! text "")))) )))
-            (call-with-output-file wiktLookup
+            (::call-with-output-file/text/replace wiktLookup
               (λ (flo)
                 (write hshlookup flo)
-                (::force-output flo) )
-              #:mode 'text
-              #:exists 'replace )
+                (::force-output flo) ))
             (::force-output fo)
             (::force-output fx)
-            )
-          #:mode 'text ) )
-      #:mode 'text ) )
+            )))))
   )
 
 #|
