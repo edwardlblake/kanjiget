@@ -349,7 +349,7 @@
 
 (define lastresults '())
 
-(define (shrink-string-for-list-if-needed str)
+(define (::string->labelstring str)
   (if (<= (string-length str) 200)
       str
       (format "~a..." (substring str 0 197))))
@@ -392,8 +392,8 @@
             (send kanji-results-list append (format "~a" (+ lix 1)) (string ltr))
             (send kanji-results-list set-string lix (string ltr) 1)
             (send kanji-results-list set-string lix (if (eq? #f knf-grade) "" (format "~a" knf-grade)) 2)
-            (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify2 readingslist)) 3)
-            (send kanji-results-list set-string lix (shrink-string-for-list-if-needed (cmaify  meaningslist)) 4)
+            (send kanji-results-list set-string lix (::string->labelstring (cmaify2 readingslist)) 3)
+            (send kanji-results-list set-string lix (::string->labelstring (cmaify  meaningslist)) 4)
             (send kanji-results-list set-string lix (format "~a" scr) 5)
             )
           )
@@ -824,7 +824,7 @@
   (send frame show #t)
   
   (guard (condition
-          (#t (new message% [parent frame] [label (format "Error: ~a" condition)])))
+          (#t (new message% [parent frame] [label (::string->labelstring (format "Error: ~a" condition))])))
     (load-datafiles
      (resolve-data-file-path CONST_FILE_KANJIIDX0)
      (resolve-data-file-path CONST_FILE_KANJIMTX)
@@ -832,10 +832,13 @@
     
   (thread
    (λ ()
-     (load-wikt-data-files
-      (resolve-data-file-path CONST_FILE_WIKTDATA)
-      (resolve-data-file-path CONST_FILE_WIKTINDX)
-      (resolve-data-file-path CONST_FILE_WIKTLKUP))))
+     (guard (condition
+             (#t (new message% [parent frame] [label (::string->labelstring (format "Error: ~a" condition))])))
+       (load-wikt-data-files
+        (resolve-data-file-path CONST_FILE_WIKTDATA)
+        (resolve-data-file-path CONST_FILE_WIKTINDX)
+        (resolve-data-file-path CONST_FILE_WIKTLKUP)))))
   (enabledisable-actions)
   (WINAPI_SetWindowPos (send frame get-handle) WINAPI_HWND_TOPMOST 0 0 0 0 3)
+  (void)
   )

@@ -78,8 +78,7 @@
     (λ (fd)
       (define sb (make-string y #\nul))
       (::input-port-byte-position fd z)
-      (::read-substring! sb 0 y fd)
-      sb)))
+      (substring sb 0 (::read-substring! sb 0 y fd)))))
 
 #|
 || load-wikt-data-files
@@ -100,9 +99,10 @@
                       (loop (read fx))))
                 ))))
     (set! wikt-lookup-hash
-          (::call-with-input-file/bin wiktLookup
-            (λ (fli)
-              (read fli)))))
+          (alist->hash-table
+           (::call-with-input-file/bin wiktLookup
+                                       (λ (fli)
+                                         (read fli))) eqv?)))
   )
 
 #|

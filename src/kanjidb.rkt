@@ -66,7 +66,7 @@
 (define ::output-port-byte-position file-position)
 (define (::sort lst ls ky) (sort lst ls #:key ky))
 (define (::call-with-input-file/bin f c) ( call-with-input-file f c))
-(define (::call-with-output-file/bin/keep f c) ( call-with-output-file FileIDX f c))
+(define (::call-with-output-file/bin/keep f c) ( call-with-output-file f c))
 (define (::call-with-input-file/text f c) ( call-with-input-file f c #:mode  'text))
 
 (define RECMATRIX_WIDTH 32)
@@ -167,7 +167,7 @@
                 (eof-object? file-list)
                 (eof-object? file-strokes))
         (raise "Failure to load radical file"))
-      (set! radk-list file-list)
+      (set! radk-list     (alist->hash-table file-list    eqv?))
       (set! radk-bystroke (alist->hash-table file-strokes eqv?) ))))
 
 ;;;
@@ -313,7 +313,7 @@
                              (write-bytes bs fom) )
                            (write (list knj-letter mtxpos knj-grade knj-strokenum knj-variant knj-freq knj-jlpt knj-readings knj-meanings knj-nanori knj-dicref) fo) ))]
                       [else (void)]))))
-              #:mode 'text) ))))))
+              ) ))))))
 
 ;;;
 ;;; create-radicalsfile-if-needed-from-radkfile2list
@@ -349,8 +349,8 @@
                       
                       (loop (read-line fic 'any)) ))))))
           (write "Kanji Radicals" fo)
-          (write radk-list fo)
-          (write (hash-table->alist radk-bystroke eqv?) fo) )))))
+          (write (hash-table->alist radk-list) fo)
+          (write (hash-table->alist radk-bystroke) fo) )))))
   
 (define (dc200x200->vector100x100/session)
   (let* ([rbt  (make-bitmap RECMATRIX_WIDTH RECMATRIX_HEIGHT #t)]

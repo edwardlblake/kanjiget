@@ -34,7 +34,7 @@
 (define (::path-split pt)
   (let-values (((a b _) (split-path pt)))
     (values (path->string a) (path->string b))))
-(define (::path-build rt pt) (path->string (build-path rt pt)))
+(define (::path-build . pts) (path->string (apply build-path pts)))
 (define ::system-path find-system-path)
 (define ::file? file-exists?)
 ;; End of NOTE
