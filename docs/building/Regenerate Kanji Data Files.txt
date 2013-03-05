@@ -90,7 +90,7 @@ Step 4 continued, Generate files
 
 4. Issue three commands:
 
-  > (require "wiktionarydb.rkt")
+  > (require "kanjidb.rkt")
   > (make-data-files-from-kanjidic2
      "kanjidic2.xml")
   > (make-data-file-from-radkfiles
