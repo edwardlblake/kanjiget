@@ -1,34 +1,10 @@
-#lang racket/base
-
-#|
-
-    KanjiGet
-    Copyright 2011-2012 Edward L. Blake
-
-    This file is part of KanjiGet.
-
-    KanjiGet is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    KanjiGet is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with KanjiGet.  If not, see <http://www.gnu.org/licenses/>.
-
-|#
-
-(provide CONST_FILE_KANJIIDX0
-         CONST_FILE_KANJIMTX
-         CONST_FILE_KANJIRDC0
-         CONST_FILE_WIKTDATA
-         CONST_FILE_WIKTINDX
-         CONST_FILE_WIKTLKUP
-         resolve-data-file-path)
+;;;
+;;;    KanjiGet
+;;;    Copyright 2011-2012 Edward L. Blake
+;;;
+;;;    This source file is part of KanjiGet.
+;;;    See LICENSE.txt
+;;;
 
 ;; NOTE: Implementation specifics begin here
 (define (::path-split pt)

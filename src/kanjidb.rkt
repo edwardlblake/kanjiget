@@ -32,8 +32,9 @@
          (only-in racket/unsafe/ops unsafe-fl* unsafe-fl+ unsafe-fx* unsafe-fx+ unsafe-flvector-set! unsafe-flvector-ref unsafe-fl> unsafe-fl- unsafe-fx- unsafe-fx< unsafe-fx>= unsafe-flsqrt unsafe-fx->fl unsafe-fl< unsafe-flabs unsafe-bytes-set!)
          (only-in racket/class new send make-object)
          (only-in racket/gui/base make-bitmap bitmap-dc% color% font% frame% canvas%)
-         "constants-filenames.rkt"
          )
+(require mzlib/include)
+(include "constants-filenames.scm")
 
 (provide kanjivectors
          kanjiinfo

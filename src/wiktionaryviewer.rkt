@@ -26,12 +26,13 @@
          (only-in racket/class new send class init super-new define/override super make-object)
          (only-in racket/gui/base frame% menu-bar% menu% append-editor-operation-menu-items checkable-menu-item% horizontal-pane% editor-canvas% text% style-delta% color% editor-snip%)
          (only-in racket/match match)
-         ;;; (for-syntax racket/match/parse) ; workaround for raco exe/distribute (not needed in 5.3.3)
          "wiktionarydb.rkt"
          "wiktionarytemplates.rkt"
          "stayontop.rkt"
-         "constants-filenames.rkt"
-         "app-labels-en.rkt")
+         )
+(require mzlib/include)
+(include "constants-app-labels-en.scm")
+(include "constants-filenames.scm")
 
 (provide open-wiktionary)
 

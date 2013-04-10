@@ -23,8 +23,9 @@
 |#
 
 (require srfi/1
-         srfi/69
-         "constants-filenames.rkt")
+         srfi/69)
+(require mzlib/include)
+(include "constants-filenames.scm")
 
 (provide wikt-wordlist-from-word
          wikt-has-definition?

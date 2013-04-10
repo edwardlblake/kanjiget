@@ -34,10 +34,11 @@
          "preferences.rkt"
          "radicaldialog.rkt"
          "intoradicalsdialog.rkt"
-         "constants-filenames.rkt"
          "stayontop.rkt"
-         "app-labels-en.rkt"
          "aboutdialog.rkt")
+(require mzlib/include)
+(include "constants-app-labels-en.scm")
+(include "constants-filenames.scm")
 
 (define stn^ontop    #t)
 

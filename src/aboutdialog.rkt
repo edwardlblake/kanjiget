@@ -24,8 +24,10 @@
 
 (require (only-in racket/class new make-object send)
          (only-in racket/gui/base dialog% vertical-panel% normal-control-font font% message% editor-canvas% text% style-delta% color% horizontal-panel% button%)
-         "app-version.rkt"
-         "app-labels-en.rkt")
+         )
+(require mzlib/include)
+(include "constants-app-version.scm")
+(include "constants-app-labels-en.scm")
 
 (provide show-about-dialog)
 
