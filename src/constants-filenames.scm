@@ -6,15 +6,6 @@
 ;;;    See LICENSE.txt
 ;;;
 
-;; NOTE: Implementation specifics begin here
-(define (::path-split pt)
-  (let-values (((a b _) (split-path pt)))
-    (values (path->string a) (path->string b))))
-(define (::path-build . pts) (path->string (apply build-path pts)))
-(define ::system-path find-system-path)
-(define ::file? file-exists?)
-;; End of NOTE
-
 (define CONST_FILE_KANJIIDX0 "knjidxl0.dat")
 (define CONST_FILE_KANJIMTX  "kanjimtx.dat")
 (define CONST_FILE_KANJIRDC0 "knjirdc0.dat")

@@ -25,9 +25,8 @@
 (require srfi/69
          (only-in racket/class new send)
          (only-in racket/gui/base dialog% horizontal-pane% check-box%)
+         "rkt-common.rkt"
          "kanjidb.rkt")
-(require mzlib/include)
-(include "constants-app-labels-en.scm")
 
 (provide pick-radical-from-list)
 

@@ -28,17 +28,12 @@
          (only-in racket/class new send make-object class init super-new define/override this super)
          (only-in racket/gui/base frame% menu-bar% menu% menu-item% append-editor-operation-menu-items checkable-menu-item% horizontal-pane% vertical-pane% make-bitmap bitmap-dc% color% canvas% choice% button% editor-canvas% message% check-box% list-box% view-control-font normal-control-font popup-menu% text-field% message-box text% style-delta%)
          (only-in racket/list add-between)
+         "rkt-common.rkt"
          "kanjidb.rkt"
-         "wiktionarydb.rkt"
-         "wiktionaryviewer.rkt"
-         "preferences.rkt"
-         "radicaldialog.rkt"
-         "intoradicalsdialog.rkt"
-         "stayontop.rkt"
-         "aboutdialog.rkt")
-(require mzlib/include)
-(include "constants-app-labels-en.scm")
-(include "constants-filenames.scm")
+         "rkt-wiktionaryviewer.rkt"
+         "rkt-radicaldialog.rkt"
+         "rkt-intoradicalsdialog.rkt"
+         "rkt-aboutdialog.rkt")
 
 (define stn^ontop    #t)
 
